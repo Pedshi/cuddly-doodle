@@ -26,6 +26,7 @@ import { Doc } from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { ChecklistNode } from "./nodes/checklist-node";
 import { $createBlockNode, BlockNode } from "./nodes/block-node";
+import { InitRemoteStatePlugin } from "./plugins/InitRemoteStatePlugin";
 
 const placeholder = "Enter some rich text...";
 
@@ -134,6 +135,7 @@ export const Editor = () => {
           <TreeViewPlugin />
           {/* <DraggableBlockPlugin /> */}
           <ListenerPlugin />
+          <InitRemoteStatePlugin />
         </div>
       </div>
     </LexicalComposer>

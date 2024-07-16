@@ -9,12 +9,19 @@ import {
 } from "lexical";
 import { ActionEvent } from "./types";
 
+type Transaction = TransactionQuery[][];
+
+type TransactionQuery = {
+  event: string;
+  args: any;
+};
+
 export const toTransactions = (
   actionList: ActionEvent[],
   state: EditorState,
   prevState: EditorState
 ) => {
-  const transactions: any[] = [];
+  const transactions: Transaction = [];
 
   for (const action of actionList) {
     switch (action.eventType) {
@@ -35,7 +42,10 @@ export const toTransactions = (
   return transactions;
 };
 
-const transactionDelete = (action: ActionEvent, prevState: EditorState) => {
+const transactionDelete = (
+  action: ActionEvent,
+  prevState: EditorState
+): TransactionQuery[] => {
   const deleteQuery = getDeleteQuery(action);
   const parentJson = prevState.read(() => $getParentJson(action.lexicalKey));
 
@@ -48,8 +58,11 @@ const transactionDelete = (action: ActionEvent, prevState: EditorState) => {
   return [deleteQuery, removeChildQuery];
 };
 
-const transactionUpdate = (action: ActionEvent, state: EditorState) => {
-  return getUpdateQuery(action);
+const transactionUpdate = (
+  action: ActionEvent,
+  state: EditorState
+): TransactionQuery[] => {
+  return [getUpdateQuery(action)];
 };
 
 const transactionCreate = (action: ActionEvent, state: EditorState) => {

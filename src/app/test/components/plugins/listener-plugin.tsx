@@ -6,6 +6,17 @@ import {
 } from "./transactionMachine/update";
 import { ActionEvent } from "./transactionMachine/types";
 import { toTransactions } from "./transactionMachine/toTransactions";
+import { $getRoot, SerializedElementNode } from "lexical";
+
+export const syncEngine = (transactions: any[]) => {
+  fetch("/api/transaction", {
+    method: "POST",
+    body: JSON.stringify({transactions}),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};
 
 export const ListenerPlugin = () => {
   const [editor] = useLexicalComposerContext();
@@ -41,9 +52,8 @@ export const ListenerPlugin = () => {
         state.editorState,
         state.prevEditorState
       );
-      console.log("actions", actions);
-      console.log("transactions", toTransactions(actions, state.editorState, state.prevEditorState));
-      console.log("state", structuredClone(state))
+      const transactions = toTransactions(actions, state.editorState, state.prevEditorState);
+      syncEngine(transactions);
     });
   }, [editor]);
 
