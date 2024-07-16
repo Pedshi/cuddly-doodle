@@ -25,7 +25,7 @@ import { useCallback } from "react";
 import { Doc } from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { ChecklistNode } from "./nodes/checklist-node";
-import { BlockNode } from "./nodes/block-node";
+import { $createBlockNode, BlockNode } from "./nodes/block-node";
 
 const placeholder = "Enter some rich text...";
 
@@ -76,13 +76,13 @@ const editorConfig = {
     ListNode,
     ListItemNode,
     ChecklistNode,
-    // BlockNode,
-    // {
-    //   replace: ParagraphNode,
-    //   with: (node: ParagraphNode) => {
-    //     return new BlockNode(crypto.randomUUID());
-    //   },
-    // },
+    BlockNode,
+    {
+      replace: ParagraphNode,
+      with: (node: ParagraphNode) => {
+        return $createBlockNode(crypto.randomUUID());
+      },
+    },
   ],
   // Handling of errors during update
   onError(error: Error) {
