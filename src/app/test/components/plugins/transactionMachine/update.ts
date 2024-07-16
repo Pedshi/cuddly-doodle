@@ -71,7 +71,9 @@ export const getDiffElement = (
   const prevJson = getJson(nodeKey, prevState);
 
   if (!currentJson && !prevJson) {
-    throw new Error(`Prev and current json was not found ${nodeKey}`);
+    throw new Error(
+      `Node not found in current and previous state, key: ${nodeKey}`
+    );
   }
 
   if (!currentJson) {
@@ -114,22 +116,30 @@ export const getDiffElement = (
 
 export const ifTextNodeGetParent = (
   nodeKey: string,
-  currState: EditorState
+  currState: EditorState,
+  prevState: EditorState
 ) => {
-  return currState.read(() => {
-    const n = $getNodeByKey(nodeKey);
-    if (!n) {
-      return null;
-    }
-    if (n.getType() !== "text") {
-      return null;
-    }
+  let parentKey = currState.read(() => $getParentKey(nodeKey));
+  if (parentKey) {
+    return parentKey;
+  }
 
-    const parent = n.getParent();
-    if (!parent) {
-      throw new Error(`Parent not found for text node key ${nodeKey}`);
-    }
+  return prevState.read(() => $getParentKey(nodeKey));
+};
 
-    return parent.getKey();
-  });
+const $getParentKey = (key: string) => {
+  const n = $getNodeByKey(key);
+  if (!n) {
+    return null;
+  }
+  if (!$isTextNode(n) && !$isLineBreakNode(n)) {
+    return null;
+  }
+
+  const parent = n.getParent();
+  if (!parent) {
+    throw new Error(`Parent not found for text node key ${key}`);
+  }
+
+  return parent.getKey();
 };

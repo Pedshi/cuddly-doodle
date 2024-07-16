@@ -27,7 +27,7 @@ export const ListenerPlugin = () => {
       for (const key of state.dirtyLeaves) {
         // If leaf is a text node and is updated we add parent element key.
         // If leaf was deleted then the parent should be dirty already.
-        const parentKey = ifTextNodeGetParent(key, state.editorState);
+        const parentKey = ifTextNodeGetParent(key, state.editorState, state.prevEditorState);
         if (parentKey) {
           updateElements.add(parentKey);
           continue;
