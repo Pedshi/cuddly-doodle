@@ -4,6 +4,8 @@ import {
   getDiffElementForKeys,
   ifTextNodeGetParent,
 } from "./transactionMachine/update";
+import { ActionEvent } from "./transactionMachine/types";
+import { toTransactions } from "./transactionMachine/toTransactions";
 
 export const ListenerPlugin = () => {
   const [editor] = useLexicalComposerContext();
@@ -34,11 +36,14 @@ export const ListenerPlugin = () => {
         updateElements.add(key);
       }
 
-      const actions = getDiffElementForKeys(
+      const actions: ActionEvent[] = getDiffElementForKeys(
         updateElements,
         state.editorState,
         state.prevEditorState
       );
+      console.log("actions", actions);
+      console.log("transactions", toTransactions(actions, state.editorState));
+      console.log("state", structuredClone(state))
     });
   }, [editor]);
 

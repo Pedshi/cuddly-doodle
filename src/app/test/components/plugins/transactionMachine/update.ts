@@ -1,16 +1,22 @@
 import {
   $getNodeByKey,
+  $isElementNode,
+  $isLineBreakNode,
+  $isTextNode,
   EditorState,
-  ElementNode,
   LexicalNode,
   SerializedElementNode,
+  SerializedLineBreakNode,
+  SerializedTextNode,
 } from "lexical";
-import { toBlockType } from "./helpers";
+import { ActionEvent } from "./types";
 
-const $combineTextNodes = (nodes: LexicalNode[]) => {
+const $combineTextNodes = (
+  nodes: LexicalNode[]
+): Array<SerializedTextNode | SerializedLineBreakNode> => {
   const textNodes = [];
   for (const node of nodes) {
-    if (node.getType() !== "text") {
+    if (!$isTextNode(node) && !$isLineBreakNode(node)) {
       continue;
     }
 
@@ -24,7 +30,7 @@ const $combineTextNodes = (nodes: LexicalNode[]) => {
 const getJson = (nodeKey: string, state: EditorState) => {
   const json = state.read(() => {
     const n = $getNodeByKey(nodeKey);
-    if (!n || !(n instanceof ElementNode)) {
+    if (!n || !$isElementNode(n)) {
       return null;
     }
 
@@ -60,22 +66,28 @@ export const getDiffElement = (
   nodeKey: string,
   currState: EditorState,
   prevState: EditorState
-) => {
+): ActionEvent | null => {
   const currentJson = getJson(nodeKey, currState);
+  const prevJson = getJson(nodeKey, prevState);
+
+  if (!currentJson && !prevJson) {
+    throw new Error(`Prev and current json was not found ${nodeKey}`);
+  }
 
   if (!currentJson) {
     return {
       eventType: "delete",
+      lexicalKey: nodeKey,
       args: {
-        id: nodeKey,
+        id: prevJson!.blockId,
+        type: prevJson!.type,
       },
     };
   }
 
-  const prevJson = getJson(nodeKey, prevState);
-
   if (!prevJson) {
     return {
+      lexicalKey: nodeKey,
       eventType: "create",
       args: {
         id: currentJson.blockId,
@@ -90,6 +102,7 @@ export const getDiffElement = (
   }
 
   return {
+    lexicalKey: nodeKey,
     eventType: "update",
     args: {
       id: currentJson.blockId,
