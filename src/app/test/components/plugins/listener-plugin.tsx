@@ -42,7 +42,7 @@ export const ListenerPlugin = () => {
         state.prevEditorState
       );
       console.log("actions", actions);
-      console.log("transactions", toTransactions(actions, state.editorState));
+      console.log("transactions", toTransactions(actions, state.editorState, state.prevEditorState));
       console.log("state", structuredClone(state))
     });
   }, [editor]);

@@ -11,7 +11,8 @@ import { ActionEvent } from "./types";
 
 export const toTransactions = (
   actionList: ActionEvent[],
-  state: EditorState
+  state: EditorState,
+  prevState: EditorState
 ) => {
   const transactions: any[] = [];
 
@@ -21,10 +22,10 @@ export const toTransactions = (
         transactions.push(transactionCreate(action, state));
         break;
       case "delete":
-        console.log("delete Transaction");
+        transactions.push(transactionDelete(action, prevState));
         break;
       case "update":
-        console.log("update Transaction");
+        transactions.push(transactionUpdate(action, state));
         break;
       default:
         throw new Error(`Unknown event type: ${action.eventType}`);
@@ -34,21 +35,26 @@ export const toTransactions = (
   return transactions;
 };
 
+const transactionDelete = (action: ActionEvent, prevState: EditorState) => {
+  const deleteQuery = getDeleteQuery(action);
+  const parentJson = prevState.read(() => $getParentJson(action.lexicalKey));
+
+  if (!parentJson) {
+    return [deleteQuery];
+  }
+
+  const removeChildQuery = getRemoveChildQuery(parentJson, action.args.id);
+
+  return [deleteQuery, removeChildQuery];
+};
+
+const transactionUpdate = (action: ActionEvent, state: EditorState) => {
+  return getUpdateQuery(action);
+};
+
 const transactionCreate = (action: ActionEvent, state: EditorState) => {
   const createNodeQuery = getCreateQuery(action);
-  const parentJson = state.read(() => {
-    const createdNode = $getNodeByKey(action.lexicalKey);
-    if (!createdNode || !$isElementNode(createdNode)) {
-      throw new Error(`Node not found for key ${action.lexicalKey}`);
-    }
-
-    const parent = createdNode.getParent();
-    if (!parent) {
-      return null;
-    }
-
-    return parent.exportJSON() as SerializedElementNode & { blockId: string };
-  });
+  const parentJson = state.read(() => $getParentJson(action.lexicalKey));
 
   if (!parentJson) {
     return [createNodeQuery];
@@ -59,12 +65,69 @@ const transactionCreate = (action: ActionEvent, state: EditorState) => {
   return [createNodeQuery, addChildQuery];
 };
 
+const $getParentJson = (key: string) => {
+  const createdNode = $getNodeByKey(key);
+  if (!createdNode || !$isElementNode(createdNode)) {
+    throw new Error(`Node not found for key ${key}`);
+  }
+
+  const parent = createdNode.getParent();
+  if (!parent) {
+    return null;
+  }
+
+  return parent.exportJSON() as SerializedElementNode & { blockId: string };
+};
+
+const getUpdateQuery = (action: ActionEvent) => {
+  const titleRaw = action.args?.properties?.title;
+
+  let title: Title | undefined;
+  if (titleRaw) {
+    title = convertTextNodes(titleRaw);
+  }
+
+  return {
+    event: "update_block",
+    args: {
+      id: action.args.id,
+      type: action.args.type,
+      title: title,
+      properties: toLuneProperties(action),
+    },
+  };
+};
+
+const getDeleteQuery = (action: ActionEvent) => {
+  return {
+    event: "delete_block",
+    args: {
+      id: action.args.id,
+      type: action.args.type,
+    },
+  };
+};
+
 const getAddChildQuery = (
   json: SerializedElementNode & { blockId: string },
   childBlockId: string
 ) => {
   return {
     event: "add_child",
+    args: {
+      id: json.blockId,
+      childId: childBlockId,
+      type: json.type,
+    },
+  };
+};
+
+const getRemoveChildQuery = (
+  json: SerializedElementNode & { blockId: string },
+  childBlockId: string
+) => {
+  return {
+    event: "remove_child",
     args: {
       id: json.blockId,
       childId: childBlockId,
