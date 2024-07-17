@@ -1,11 +1,11 @@
 import { $createParagraphNode, $createTextNode, ParagraphNode } from "lexical";
-import { Block, MockData, mockData } from "../data/mock-data";
+import { Block, MockData, mockDataOnlyPage } from "../data/mock-data";
 
 import { $createHeadingNode } from "@lexical/rich-text";
 import { $createBlockNode, BlockNode } from "../nodes/block-node";
 
 export const findPageNode = (data: MockData) =>
-  mockData.data.find((node) => node.type === "page");
+  mockDataOnlyPage.data.find((node) => node.type === "page");
 
 const getrandomthreedigitNr = () => {
   return Math.floor(100 + Math.random() * 900);

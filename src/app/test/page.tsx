@@ -1,10 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Doc, Map as YMap, Array as YArray } from "yjs";
-import { MockData, mockData } from "./components/data/mock-data";
+import {
+  MockData,
+  mockDataOnlyPage,
+  mockDataOnlyParagraphAndPage,
+} from "./components/data/mock-data";
 import { YBlock } from "./components/EditorStore/YBlock";
+import { setupYBlocks } from "./components/util/setupYBlocks";
 
 const Editor = dynamic(
   () => import("./components/editor").then((mod) => mod.Editor),
@@ -14,7 +19,7 @@ const Editor = dynamic(
 );
 
 const fetchBlocks = async () => {
-  return mockData;
+  return mockDataOnlyParagraphAndPage;
 };
 
 const MAP_NAME = "lune_blocks";
@@ -24,69 +29,34 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   const [blockMap, setBlockMap] = useState<YMap<unknown> | null>(null);
-  const [blocks, setBlocks] = useState<YBlock[]>([]);
-  const [pageId, setPageId] = useState("");
+  const [page, setPage] = useState<YBlock | null>();
+  const hasSetupBlocks = useRef(false);
 
   useEffect(() => {
+    if (hasSetupBlocks.current) {
+      return;
+    }
     const setupBlocks = async () => {
       const data = await fetchBlocks();
 
       const blockMap = doc.getMap(MAP_NAME);
-      const { blocks } = setupYjsNodes(data, blockMap);
+      const { page } = setupYBlocks(data, blockMap);
 
       // connect to storequeue
       // blockMap.observeDeep(storeQueue)
 
-      const pageId = getPageBlockId(data);
-      if (!pageId) {
-        throw new Error("Page block not found");
-      }
-
       setBlockMap(blockMap);
-      setBlocks(blocks);
-      setPageId(pageId);
+      setPage(page);
       setLoading(false);
     };
 
     setupBlocks();
+    hasSetupBlocks.current = true;
   }, []);
 
-  if (loading || !blockMap) {
+  if (loading || !blockMap || !page) {
     return <div>Loading...</div>;
   }
 
-  return <Editor blockMap={blockMap} blocks={blocks} pageId={pageId} />;
-}
-
-function setupYjsNodes(data: MockData, blockMap: YMap<unknown>) {
-  const blocks: YBlock[] = [];
-  for (const block of data.data) {
-    const titleMap = new YArray();
-    const propertiesMap = new YMap();
-    const element = new YBlock(
-      block.id,
-      propertiesMap,
-      titleMap,
-      block.type,
-      []
-    );
-
-    const elementMap = new YMap();
-    // TODO: missing type in properties
-    elementMap.set("properties", propertiesMap);
-    elementMap.set("title", titleMap);
-
-    blockMap.set(block.id, elementMap);
-
-    blocks.push(element);
-
-    // create YjsElementNode from block
-    // add corresponding Map to the blockMap
-  }
-
-  return { blockMap, blocks };
-}
-
-function getPageBlockId(data: MockData) {
-  return data.data.find((node) => node.type === "page")?.id;
+  return <Editor blockMap={blockMap} page={page} doc={doc} />;
 }

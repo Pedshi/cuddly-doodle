@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getRoot } from "lexical";
 import { useEffect, useRef, useState } from "react";
-import { Map as YMap, Transaction, YEvent } from "yjs";
+import { Map as YMap, Transaction, YEvent, Doc } from "yjs";
 import { YBlock } from "./YBlock";
 import {
   $createLexicalNodeRecursive,
@@ -12,12 +12,12 @@ import { Bindings } from "./types";
 
 export const BroadcastPlugin = ({
   blockMap,
-  blocks,
-  pageBlockId,
+  doc,
+  page,
 }: {
   blockMap: YMap<unknown>;
-  blocks: YBlock[];
-  pageBlockId: string;
+  page: YBlock;
+  doc: Doc;
 }) => {
   const [editor] = useLexicalComposerContext();
   const [binding, setBinding] = useState<Bindings | null>(null);
@@ -31,21 +31,13 @@ export const BroadcastPlugin = ({
 
     editor.update(
       () => {
-        const lexicalRoot = $getRoot();
-        const page = findBlockById(pageBlockId, blocks);
-        if (!page) {
-          console.error("Root block not found");
-          return;
-        }
-        for (const block of page._children) {
-          const node = $createLexicalNodeRecursive(block, luneToLexMap);
-          lexicalRoot.append(node);
-        }
+        page.$createLexicalNodeWithChildren(luneToLexMap);
 
         setBinding({
           luneToLexMap,
           blockMap,
           page,
+          doc,
         });
       },
       { tag: "init" }
@@ -69,7 +61,7 @@ export const BroadcastPlugin = ({
         prevEditorState,
         tags,
       }) => {
-        syncLuneNodes(page, tags, editorState, prevEditorState);
+        syncLuneNodes(page, tags, editorState, prevEditorState, binding);
       }
     );
 
@@ -77,16 +69,18 @@ export const BroadcastPlugin = ({
       events: Array<YEvent<any>>,
       transaction: Transaction
     ) => {
+      if (transaction.origin === "editor") {
+        return;
+      }
       console.log("SyncLexicalNodes");
-      // if (transaction.origin === "editor") {
-      //     return;
-      // }
     };
 
     const syncToLuneServer = (
       events: Array<YEvent<any>>,
       transaction: Transaction
     ) => {
+      console.log("yEvent", events);
+      console.log("ytransaction", transaction);
       console.log("SyncToLuneServer");
     };
 

@@ -2,7 +2,7 @@ import { $createParagraphNode, $getRoot, EditorState } from "lexical";
 import { Array as YArray, Map as YMap } from "yjs";
 import { $createYjsElementNode, YBlock } from "./YBlock";
 import { addElementsToYjsArray, addpropertiesToYjsMap } from "../data/util";
-import { LuneToLexMap } from "./types";
+import { Bindings, LuneToLexMap } from "./types";
 
 export function findBlockById(id: string, blocks: YBlock[]) {
   for (const block of blocks) {
@@ -31,31 +31,15 @@ export function syncLuneNodes(
   luneRoot: YBlock,
   tags: Set<string>,
   state: EditorState,
-  prevState: EditorState
+  prevState: EditorState,
+  bindings: Bindings
 ) {
   // Should go through Yjs transact
   console.log("SyncLuneNodes");
-}
+  // const doc = bindings.doc;
 
-export function $createLuneNodes(map: YMap<unknown>) {
-  const blockId = crypto.randomUUID();
-
-  const lexicalRoot = $getRoot();
-  const properties = new YMap();
-  const title = new YArray();
-  addpropertiesToYjsMap({}, properties);
-  addElementsToYjsArray([], title);
-
-  const luneRoot = $createYjsElementNode(properties, title, "root", "root");
-
-  const blockMap = new YMap();
-  blockMap.set("properties", properties);
-  blockMap.set("title", title);
-
-  map.set(blockId, blockMap);
-
-  // Init LuneElements by traversing the lexicalRoot and creating LuneElementNodes
-  luneRoot.init(lexicalRoot);
-
-  return luneRoot;
+  // doc.transact(() => {
+  //   const randomNr = Math.random();
+  //   bindings.page._properties.set("randomNr", randomNr);
+  // }, "editor");
 }

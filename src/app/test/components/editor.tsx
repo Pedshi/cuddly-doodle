@@ -18,7 +18,7 @@ import TreeViewPlugin from "./treeview";
 
 import { HeadingNode } from "@lexical/rich-text";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { Block, MockData, mockData } from "./data/mock-data";
+import { Block, MockData, mockDataOnlyPage } from "./data/mock-data";
 import { createNodeFromRoot, findPageNode } from "./util/block-compose";
 import { ListenerPlugin } from "./plugins/listener-plugin";
 import { Doc, Map as YMap } from "yjs";
@@ -83,12 +83,12 @@ let idSuffix = 0;
 
 export const Editor = ({
   blockMap,
-  blocks,
-  pageId,
+  page,
+  doc,
 }: {
   blockMap: YMap<unknown>;
-  blocks: YBlock[];
-  pageId: string;
+  page: YBlock;
+  doc: Doc;
 }) => {
   return (
     <LexicalComposer initialConfig={editorConfig}>
@@ -110,11 +110,7 @@ export const Editor = ({
           <AutoFocusPlugin />
           <TreeViewPlugin />
           {/* <DraggableBlockPlugin /> */}
-          <BroadcastPlugin
-            blockMap={blockMap}
-            blocks={blocks}
-            pageBlockId={pageId}
-          />
+          <BroadcastPlugin blockMap={blockMap} page={page} doc={doc} />
         </div>
       </div>
     </LexicalComposer>

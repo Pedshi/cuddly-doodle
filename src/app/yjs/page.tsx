@@ -17,21 +17,23 @@ export default function TestY() {
   useEffect(() => {
     const ydoc = new Y.Doc();
     const yPageArray = ydoc.getArray("root");
-    
-    const xmlText = new Y.XmlText();
-    
-    
-    const block1 = new Y.Map();
 
-    const block2 = new Y.Map();  
+    const yarray = new Y.Array();
+    yarray.insert(0, [1, 2, 3]);
+    yarray.insert(0, [4, 5, 6]);
+    yarray.push([{ title: "value 3 " + randomThreeDigitNr() }]);
+
+    const block1 = new Y.Map();
     block1.set("Some key", val);
 
-    console.log("val", val)
-    yPageArray.insert(0, [block1, block2]);
+    const block2 = new Y.Map();
+
+    console.log("val", val);
+    yPageArray.insert(0, [block1, block2, yarray]);
 
     yPageArray.observeDeep((event, transaction) => {
-      console.log('event', event);
-      console.log('transaction', transaction)
+      console.log("event", event);
+      console.log("transaction", transaction);
     });
 
     setBlock1(block1);

@@ -1,4 +1,6 @@
-export const mockData: MockData = {
+import { TitleItem } from "../EditorStore/types";
+
+export const mockDataOnlyPage: MockData = {
   data: [
     {
       id: "123-page",
@@ -6,6 +8,42 @@ export const mockData: MockData = {
     },
   ],
 };
+
+export const mockDataOnlyParagraphAndPage: MockData = {
+  data: [
+    {
+      id: "456-text",
+      type: "text",
+      title: {
+        content: [
+          {
+            text: "This is a paragraph ",
+          },
+          { text: "Formatted text", marks: ["bold"] },
+        ],
+      },
+      properties: {},
+    },
+    {
+      id: "234-text",
+      type: "text",
+      title: {
+        content: [
+          {
+            text: "This is also a paragraph",
+          },
+        ],
+      },
+      properties: {},
+    },
+    {
+      id: "123-page",
+      content: ["234-text", "456-text"],
+      type: "page",
+    },
+  ],
+};
+
 export const mockDataLong: MockData = {
   data: [
     {
@@ -59,7 +97,7 @@ export type MockData = {
 export type Block = {
   id: string;
   content?: string[];
-  title?: Record<string, any>;
+  title?: { content: TitleItem[] };
   type: string;
   properties?: {
     title?: string;
