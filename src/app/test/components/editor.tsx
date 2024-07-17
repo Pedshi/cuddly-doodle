@@ -23,8 +23,8 @@ import { createNodeFromRoot, findPageNode } from "./util/block-compose";
 import { ListenerPlugin } from "./plugins/listener-plugin";
 import { Doc, Map as YMap } from "yjs";
 import { ChecklistNode } from "./nodes/checklist-node";
-import { YjsElementNode } from "./data/YjsElementNode";
-import { YjsPlugin } from "./plugins/LuneYjsPlugin";
+import { YBlock } from "./EditorStore/YBlock";
+import { BroadcastPlugin } from "./EditorStore/BroadcastPlugin";
 
 const placeholder = "Enter some rich text...";
 
@@ -87,7 +87,7 @@ export const Editor = ({
   pageId,
 }: {
   blockMap: YMap<unknown>;
-  blocks: YjsElementNode[];
+  blocks: YBlock[];
   pageId: string;
 }) => {
   return (
@@ -110,7 +110,11 @@ export const Editor = ({
           <AutoFocusPlugin />
           <TreeViewPlugin />
           {/* <DraggableBlockPlugin /> */}
-          <YjsPlugin blockMap={blockMap} blocks={blocks} pageBlockId={pageId} />
+          <BroadcastPlugin
+            blockMap={blockMap}
+            blocks={blocks}
+            pageBlockId={pageId}
+          />
         </div>
       </div>
     </LexicalComposer>

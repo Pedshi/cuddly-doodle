@@ -1,38 +1,26 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $createParagraphNode, $getRoot, EditorState } from "lexical";
+import { $getRoot } from "lexical";
 import { useEffect, useRef, useState } from "react";
+import { Map as YMap, Transaction, YEvent } from "yjs";
+import { YBlock } from "./YBlock";
 import {
-  Array as YArray,
-  Doc as YDoc,
-  Map as YMap,
-  Transaction,
-  YEvent,
-} from "yjs";
-import { $createYjsElementNode, YjsElementNode } from "../data/YjsElementNode";
-import { addElementsToYjsArray, addpropertiesToYjsMap } from "../data/util";
+  $createLexicalNodeRecursive,
+  findBlockById,
+  syncLuneNodes,
+} from "./utils";
+import { Bindings } from "./types";
 
-type LuneToLexMap = Map<string, YjsElementNode>;
-
-type Binding = {
-  blockMap: YMap<unknown>;
-  luneToLexMap: LuneToLexMap;
-  page: YjsElementNode;
-};
-
-const DOC_NAME = "lune_block";
-
-// We assume blockMap only contains non page blocks for now
-export const YjsPlugin = ({
+export const BroadcastPlugin = ({
   blockMap,
   blocks,
   pageBlockId,
 }: {
   blockMap: YMap<unknown>;
-  blocks: YjsElementNode[];
+  blocks: YBlock[];
   pageBlockId: string;
 }) => {
   const [editor] = useLexicalComposerContext();
-  const [binding, setBinding] = useState<Binding | null>(null);
+  const [binding, setBinding] = useState<Bindings | null>(null);
   const hasUpdatedRef = useRef(false);
 
   useEffect(() => {
@@ -113,60 +101,4 @@ export const YjsPlugin = ({
   }, [binding]);
 
   return null;
-};
-
-const findBlockById = (id: string, blocks: YjsElementNode[]) => {
-  for (const block of blocks) {
-    if (block._blockId === id) {
-      return block;
-    }
-  }
-  return null;
-};
-
-const $createLexicalNodeRecursive = (
-  block: YjsElementNode,
-  luneToLexMap: LuneToLexMap
-) => {
-  // Create blockNode and add each child recursively.
-  // add block to luneToLexMap too
-
-  const lexicalNode = $createParagraphNode();
-
-  luneToLexMap.set(lexicalNode.getKey(), block);
-
-  return lexicalNode;
-};
-
-const syncLuneNodes = (
-  luneRoot: YjsElementNode,
-  tags: Set<string>,
-  state: EditorState,
-  prevState: EditorState
-) => {
-  // Should go through Yjs transact
-  console.log("SyncLuneNodes");
-};
-
-const $createLuneNodes = (map: YMap<unknown>) => {
-  const blockId = crypto.randomUUID();
-
-  const lexicalRoot = $getRoot();
-  const properties = new YMap();
-  const title = new YArray();
-  addpropertiesToYjsMap({}, properties);
-  addElementsToYjsArray([], title);
-
-  const luneRoot = $createYjsElementNode(properties, title, "root", "root");
-
-  const blockMap = new YMap();
-  blockMap.set("properties", properties);
-  blockMap.set("title", title);
-
-  map.set(blockId, blockMap);
-
-  // Init LuneElements by traversing the lexicalRoot and creating LuneElementNodes
-  luneRoot.init(lexicalRoot);
-
-  return luneRoot;
 };
