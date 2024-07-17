@@ -21,12 +21,10 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import { Block, MockData, mockData } from "./data/mock-data";
 import { createNodeFromRoot, findPageNode } from "./util/block-compose";
 import { ListenerPlugin } from "./plugins/listener-plugin";
-import { useCallback } from "react";
-import { Doc } from "yjs";
-import { WebsocketProvider } from "y-websocket";
+import { Doc, Map as YMap } from "yjs";
 import { ChecklistNode } from "./nodes/checklist-node";
-import { $createBlockNode, BlockNode } from "./nodes/block-node";
-import { InitRemoteStatePlugin } from "./plugins/InitRemoteStatePlugin";
+import { YjsElementNode } from "./data/YjsElementNode";
+import { YjsPlugin } from "./plugins/LuneYjsPlugin";
 
 const placeholder = "Enter some rich text...";
 
@@ -72,48 +70,26 @@ const randomThreeDigitNr = () => {
 
 const editorConfig = {
   namespace: "React.js Demo",
-  nodes: [
-    HeadingNode,
-    ListNode,
-    ListItemNode,
-    ChecklistNode,
-    BlockNode,
-    {
-      replace: ParagraphNode,
-      with: (node: ParagraphNode) => {
-        return $createBlockNode(crypto.randomUUID());
-      },
-    },
-  ],
+  nodes: [HeadingNode, ListNode, ListItemNode, ChecklistNode],
   // Handling of errors during update
   onError(error: Error) {
     throw error;
   },
   // The editor theme
   theme,
-  // editorState: (editor: LexicalEditor) => {
-  //   const root = $getRoot();
-
-  //   const pageNode = findPageNode(mockData);
-  //   if (!pageNode || !pageNode.content) {
-  //     return;
-  //   }
-
-  //   for (const id of pageNode.content) {
-  //     const block = mockData.data.find((node) => node.id === id);
-  //     if (!block) {
-  //       throw new Error(`Node with id ${id} not found`);
-  //     }
-
-  //     const node = createNodeFromRoot(block, mockData);
-  //     root.append(node);
-  //   }
-  // },
 };
 
 let idSuffix = 0;
 
-export const Editor = () => {
+export const Editor = ({
+  blockMap,
+  blocks,
+  pageId,
+}: {
+  blockMap: YMap<unknown>;
+  blocks: YjsElementNode[];
+  pageId: string;
+}) => {
   return (
     <LexicalComposer initialConfig={editorConfig}>
       <div className="editor-container p-2">
@@ -134,8 +110,7 @@ export const Editor = () => {
           <AutoFocusPlugin />
           <TreeViewPlugin />
           {/* <DraggableBlockPlugin /> */}
-          <ListenerPlugin />
-          <InitRemoteStatePlugin />
+          <YjsPlugin blockMap={blockMap} blocks={blocks} pageBlockId={pageId} />
         </div>
       </div>
     </LexicalComposer>

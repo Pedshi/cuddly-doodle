@@ -1,6 +1,14 @@
 export const mockData: MockData = {
   data: [
     {
+      id: "123-page",
+      type: "page",
+    },
+  ],
+};
+export const mockDataLong: MockData = {
+  data: [
+    {
       id: "456-text",
       type: "text",
       title: {

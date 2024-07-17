@@ -6,6 +6,7 @@ const randomThreeDigitNr = () => {
   return Math.floor(100 + Math.random() * 900);
 };
 
+let val = { title: "value 1 " + randomThreeDigitNr() };
 export default function TestY() {
   const [y1, setY1] = useState<Y.Doc | null>(null);
   const [y2, setY2] = useState<Y.Doc | null>(null);
@@ -16,22 +17,22 @@ export default function TestY() {
   useEffect(() => {
     const ydoc = new Y.Doc();
     const yPageArray = ydoc.getArray("root");
-    yPageArray.observe((event) => {
-      console.log("Page changes", event.changes.keys);
-    });
-
+    
+    const xmlText = new Y.XmlText();
+    
+    
     const block1 = new Y.Map();
-    block1.observe((event) => {
-      console.log("Block1 changes", event);
-    });
 
-    const block2 = new Y.Map();
-    block2.observe((event) => {
-      console.log("Block2 changes", event);
-      console.log("Block2 changes path ", event.path);
-    });
+    const block2 = new Y.Map();  
+    block1.set("Some key", val);
 
+    console.log("val", val)
     yPageArray.insert(0, [block1, block2]);
+
+    yPageArray.observeDeep((event, transaction) => {
+      console.log('event', event);
+      console.log('transaction', transaction)
+    });
 
     setBlock1(block1);
     setBlock2(block2);
@@ -50,9 +51,9 @@ export default function TestY() {
       if (!block1 || !block2) {
         return;
       }
-      block1.set("block 1", { title: "value 1 " + randomThreeDigitNr() });
-      block2.set("block 2", { title: "value 2 " + randomThreeDigitNr() });
-    });
+      val = { title: "value 2 " + randomThreeDigitNr() };
+      // block1.set("Some key", { title: "value 1 " + randomThreeDigitNr() });
+    }, "server");
   };
 
   const addKeyY2 = () => {

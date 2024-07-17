@@ -11,7 +11,7 @@ import { $getRoot, SerializedElementNode } from "lexical";
 export const syncEngine = (transactions: any[]) => {
   fetch("/api/transaction", {
     method: "POST",
-    body: JSON.stringify({transactions}),
+    body: JSON.stringify({ transactions }),
     headers: {
       "Content-Type": "application/json",
     },
@@ -38,7 +38,11 @@ export const ListenerPlugin = () => {
       for (const key of state.dirtyLeaves) {
         // If leaf is a text node and is updated we add parent element key.
         // If leaf was deleted then the parent should be dirty already.
-        const parentKey = ifTextNodeGetParent(key, state.editorState, state.prevEditorState);
+        const parentKey = ifTextNodeGetParent(
+          key,
+          state.editorState,
+          state.prevEditorState
+        );
         if (parentKey) {
           updateElements.add(parentKey);
           continue;
@@ -52,7 +56,11 @@ export const ListenerPlugin = () => {
         state.editorState,
         state.prevEditorState
       );
-      const transactions = toTransactions(actions, state.editorState, state.prevEditorState);
+      const transactions = toTransactions(
+        actions,
+        state.editorState,
+        state.prevEditorState
+      );
       syncEngine(transactions);
     });
   }, [editor]);

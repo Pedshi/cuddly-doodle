@@ -113,7 +113,6 @@ const addChild = (query: any) => {
     throw new Error(`Block with id ${query.args.id} not found`);
   }
 
-  console.log("BLOCK!!", block);
   block.children.push(childId);
 };
 
