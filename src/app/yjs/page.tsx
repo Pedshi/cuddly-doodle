@@ -11,33 +11,36 @@ export default function TestY() {
   const [y1, setY1] = useState<Y.Doc | null>(null);
   const [y2, setY2] = useState<Y.Doc | null>(null);
 
-  const [block1, setBlock1] = useState<Y.Map<unknown> | null>(null);
-  const [block2, setBlock2] = useState<Y.Map<unknown> | null>(null);
+  const [elem, setElem] = useState<Y.XmlElement | null>(null);
+  const [text, setText] = useState<Y.XmlText | null>(null);
 
   useEffect(() => {
     const ydoc = new Y.Doc();
     const yPageArray = ydoc.getArray("root");
 
-    const yarray = new Y.Array();
-    yarray.insert(0, [1, 2, 3]);
-    yarray.insert(0, [4, 5, 6]);
-    yarray.push([{ title: "value 3 " + randomThreeDigitNr() }]);
+    const elem = new Y.XmlElement("node-name");
+    elem.setAttribute("MyKey1", "MyValue1");
 
-    const block1 = new Y.Map();
-    block1.set("Some key", val);
+    const text = new Y.XmlText("Hello World");
+    text.setAttribute("MyTextAttribute1", "MyTextValue");
 
-    const block2 = new Y.Map();
-
-    console.log("val", val);
-    yPageArray.insert(0, [block1, block2, yarray]);
+    yPageArray.insert(0, [elem, text]);
 
     yPageArray.observeDeep((event, transaction) => {
-      console.log("event", event);
-      console.log("transaction", transaction);
+      event.forEach((e) => e.delta);
+
+      for (const e of event) {
+        console.log("event", e);
+        console.log("event path", e.path);
+        console.log("event delta", e.delta);
+        console.log("event changes", e.changes);
+        console.log("event attributesChanged", e?.attributesChanged);
+        console.log(".-----");
+      }
     });
 
-    setBlock1(block1);
-    setBlock2(block2);
+    setElem(elem);
+    setText(text);
     setY1(ydoc);
   }, []);
   useEffect(() => {
@@ -50,11 +53,10 @@ export default function TestY() {
       return;
     }
     y1.transact(() => {
-      if (!block1 || !block2) {
-        return;
-      }
-      val = { title: "value 2 " + randomThreeDigitNr() };
-      // block1.set("Some key", { title: "value 1 " + randomThreeDigitNr() });
+      elem?.setAttribute("MyKey1", "MyNewValue1");
+      elem?.setAttribute("MyKey2", "MyValue2");
+      text?.setAttribute("MyTextAttribute1", "MyNewTextValue1");
+      text?.setAttribute("MyTextAttribute2", "MyTextValue2");
     }, "server");
   };
 

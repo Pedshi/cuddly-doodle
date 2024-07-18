@@ -15,15 +15,31 @@ export function syncTitleFromLexical(
   const textNodes = getDirectTextAndLineBreakNodes(nextNode);
   const newTitles = lexicalTextToTitleItems(textNodes);
 
-  replaceOldTitleWithNew(sharedTitle, newTitles);
+  updateTitles(sharedTitle, newTitles);
 }
 
-function replaceOldTitleWithNew(
+function updateTitles(sharedTitle: YArray<TitleItem>, newTitle: TitleItem[]) {
+  for (let i = 0; i < newTitle.length; i++) {
+    const fresh = newTitle[i];
+    const old = sharedTitle.get(i);
+
+    if (fresh.text !== old.text || fresh.marks !== old.marks) {
+      updateTitle(sharedTitle, fresh, i);
+    }
+  }
+
+  if (newTitle.length < sharedTitle.length) {
+    sharedTitle.delete(newTitle.length, sharedTitle.length - newTitle.length);
+  }
+}
+
+function updateTitle(
   sharedTitle: YArray<TitleItem>,
-  newTitle: TitleItem[]
+  newTitle: TitleItem,
+  index: number
 ) {
-  sharedTitle.delete(0, sharedTitle.length);
-  sharedTitle.insert(0, newTitle);
+  sharedTitle.delete(index, 1);
+  sharedTitle.insert(index, [newTitle]);
 }
 
 function lexicalTextToTitleItems(textNodes: (TextNode | LineBreakNode)[]) {
@@ -166,13 +182,28 @@ export function syncPropertiesFromLexical(
 
   for (const [luneKey, lexicalKey] of propertyKeys) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nextValue = (nextNode as any)[lexicalKey];
+    let nextValue = (nextNode as any)[lexicalKey];
+
+    if (luneKey === "type") {
+      nextValue = lexicalTypeToLuneType(nextValue);
+    }
 
     const value = sharedProperties.get(luneKey);
 
     if (nextValue !== value) {
       sharedProperties.set(luneKey, nextValue);
     }
+  }
+}
+
+function lexicalTypeToLuneType(lexicalType: string) {
+  switch (lexicalType) {
+    case "paragraph":
+      return "text";
+    case "root":
+      return "page";
+    default:
+      return null;
   }
 }
 

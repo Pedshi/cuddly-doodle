@@ -13,7 +13,6 @@ import { Map } from "yjs";
 import type { Map as YMap, Array as YArray } from "yjs";
 import { Bindings, LuneToLexMap, TitleItem } from "./types";
 import { syncPropertiesFromLexical, syncTitleFromLexical } from "./BlockUtils";
-import assert from "assert";
 
 export class YBlock {
   _blockId: string;
