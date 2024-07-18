@@ -9,7 +9,7 @@ import {
   $syncLuneNodes,
 } from "./utils";
 import { Bindings } from "./types";
-import { transactionProvider } from "../TransactionBuilder/TransactionBuilder";
+import { serverProvider } from "../Provider/ServerProvider";
 
 export const BroadcastPlugin = ({
   blockMap,
@@ -92,7 +92,7 @@ export const BroadcastPlugin = ({
       }
       console.log("lexical update origin", transaction.origin);
 
-      transactionProvider(events, transaction);
+      serverProvider(events, transaction);
     };
 
     blockMap.observeDeep(syncLexicalNodes);
