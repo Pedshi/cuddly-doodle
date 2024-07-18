@@ -1,4 +1,5 @@
 import {
+  $createLineBreakNode,
   $createParagraphNode,
   $createTextNode,
   $getNodeByKey,
@@ -113,19 +114,33 @@ export class YBlock {
 function $createParagraphFromYBlock(block: YBlock) {
   const paragraph = $createParagraphNode();
   for (const titleItem of block._title) {
-    const textNode = $createTextNode(titleItem.text);
+    const textSplitByNewLine = getTextSplitByNewLine(titleItem.text);
+    const formats: TextFormatType[] = [];
 
     if (titleItem.marks) {
-      const formats = getFormatFromMarks(titleItem.marks);
+      const format = getFormatFromMarks(titleItem.marks);
+      formats.push(...format);
+    }
+
+    for (let i = 0; i < textSplitByNewLine.length; i++) {
+      const textNode = $createTextNode(textSplitByNewLine[i]);
       for (const format of formats) {
         textNode.setFormat(format);
       }
-    }
+      paragraph.append(textNode);
 
-    paragraph.append(textNode);
+      if (i < textSplitByNewLine.length - 1) {
+        const lineBreak = $createLineBreakNode();
+        paragraph.append(lineBreak);
+      }
+    }
   }
 
   return paragraph;
+}
+
+function getTextSplitByNewLine(text: string): string[] {
+  return text.split("\n");
 }
 
 function getFormatFromMarks(marks: string[]): TextFormatType[] {

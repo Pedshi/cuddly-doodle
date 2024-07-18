@@ -17,7 +17,7 @@ export const mockDataOnlyParagraphAndPage: MockData = {
       title: {
         content: [
           {
-            text: "This is a paragraph ",
+            text: "This is a paragraph \n",
           },
           { text: "Formatted text", marks: ["bold"] },
         ],
