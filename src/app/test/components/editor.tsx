@@ -25,6 +25,7 @@ import { Doc, Map as YMap } from "yjs";
 import { ChecklistNode } from "./nodes/checklist-node";
 import { YBlock } from "./EditorStore/YBlock";
 import { BroadcastPlugin } from "./EditorStore/BroadcastPlugin";
+import { YTreePlugin } from "./dev-tools/YTreePlugin";
 
 const placeholder = "Enter some rich text...";
 
@@ -111,6 +112,7 @@ export const Editor = ({
           <TreeViewPlugin />
           {/* <DraggableBlockPlugin /> */}
           <BroadcastPlugin blockMap={blockMap} page={page} doc={doc} />
+          <YTreePlugin doc={doc} />
         </div>
       </div>
     </LexicalComposer>

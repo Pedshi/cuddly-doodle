@@ -6,7 +6,7 @@ import { YBlock } from "./YBlock";
 import {
   $createLexicalNodeRecursive,
   findBlockById,
-  syncLuneNodes,
+  $syncLuneNodes,
 } from "./utils";
 import { Bindings } from "./types";
 
@@ -61,7 +61,14 @@ export const BroadcastPlugin = ({
         prevEditorState,
         tags,
       }) => {
-        syncLuneNodes(page, tags, editorState, prevEditorState, binding);
+        $syncLuneNodes(
+          page,
+          dirtyElements,
+          tags,
+          editorState,
+          prevEditorState,
+          binding
+        );
       }
     );
 

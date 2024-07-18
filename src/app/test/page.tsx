@@ -22,7 +22,7 @@ const fetchBlocks = async () => {
   return mockDataOnlyParagraphAndPage;
 };
 
-const MAP_NAME = "lune_blocks";
+export const MAP_NAME = "lune_blocks";
 
 export default function App() {
   const [doc, setDoc] = useState(new Doc());

@@ -27,8 +27,9 @@ export function $createLexicalNodeRecursive(
   return lexicalNode;
 }
 
-export function syncLuneNodes(
+export function $syncLuneNodes(
   luneRoot: YBlock,
+  dirtyElements: Map<string, boolean>,
   tags: Set<string>,
   state: EditorState,
   prevState: EditorState,
@@ -36,10 +37,18 @@ export function syncLuneNodes(
 ) {
   // Should go through Yjs transact
   console.log("SyncLuneNodes");
-  // const doc = bindings.doc;
+  const { doc } = bindings;
 
-  // doc.transact(() => {
-  //   const randomNr = Math.random();
-  //   bindings.page._properties.set("randomNr", randomNr);
-  // }, "editor");
+  doc.transact((transaction) => {
+    state.read(() => {
+      if (!dirtyElements.has("root")) {
+        return;
+      }
+
+      const nextLexicalRoot = $getRoot();
+      const page = bindings.page;
+      page.ysyncBlockWithLexical(nextLexicalRoot, bindings);
+      page.ysyncChildrenWithLexical(nextLexicalRoot, bindings);
+    });
+  }, "editor");
 }
