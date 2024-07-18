@@ -5,14 +5,20 @@ import {
   $getNodeByKey,
   $getRoot,
   ElementNode,
+  LexicalNode,
+  LineBreakNode,
   NodeMap,
   RootNode,
   TextFormatType,
+  TextNode,
 } from "lexical";
-import { Map } from "yjs";
 import type { Map as YMap, Array as YArray } from "yjs";
 import { Bindings, LuneToLexMap, TitleItem } from "./types";
-import { $createParagraphFromYBlock } from "../Converter/YtoLex";
+import {
+  $createParagraphFromYBlock,
+  getFormatFromMarks,
+  getTextSplitByNewLine,
+} from "../Converter/YtoLex";
 import { syncPropertiesFromLexical } from "../Converter/LexToY/properties";
 import { syncTitleFromLexical } from "../Converter/LexToY/title";
 
@@ -39,9 +45,14 @@ export class YBlock {
     this._children.push(child);
   }
 
-  $createLexicalNodeWithChildren(luneToLexMap: LuneToLexMap) {
+  $createLexicalNodeWithChildren(
+    luneToLexMap: LuneToLexMap,
+    blockIdNodeKeyPair: Map<string, string>
+  ) {
     let currentNode = this._$createCurrentNodeInLexical();
-    luneToLexMap.set(currentNode.getKey(), this);
+    const nodeKey = currentNode.getKey();
+    luneToLexMap.set(nodeKey, this);
+    blockIdNodeKeyPair.set(this._blockId, nodeKey);
 
     if (currentNode instanceof RootNode) {
       // Lexical adds a paragraph on initiation. We need to clear it
@@ -49,7 +60,10 @@ export class YBlock {
     }
 
     for (const child of this._children) {
-      const childNode = child.$createLexicalNodeWithChildren(luneToLexMap);
+      const childNode = child.$createLexicalNodeWithChildren(
+        luneToLexMap,
+        blockIdNodeKeyPair
+      );
       currentNode.append(childNode);
     }
 
@@ -107,13 +121,129 @@ export class YBlock {
     }
   }
 
+  $syncLexicalWithYjsProperties(
+    lexicalNode: ElementNode,
+    keysChanged: Set<string>
+  ) {
+    const writableNode = lexicalNode.getWritable() as LexicalNode;
+    for (const key of keysChanged) {
+      if (key === "type") {
+        console.log("Skipping type for now");
+        continue;
+      }
+
+      const value = this._properties.get(key) as any;
+
+      writableNode[key as keyof typeof writableNode] = value;
+    }
+  }
+
+  $syncLexicalWithYjsTitle(lexicalNode: ElementNode) {
+    const diffText = buildTextNodesFromYArray(this._title);
+    const lexicalChildren = lexicalNode.getChildren();
+    for (let i = 0; i < diffText.length; i++) {
+      const diff = diffText[i];
+      const lexicalChild =
+        i > lexicalChildren.length - 1 ? undefined : lexicalChildren[i];
+
+      if (!lexicalChild) {
+        const textNode = $createTextNode(diff.text);
+        for (const format of diff.formats) {
+          textNode.setFormat(format);
+        }
+        lexicalNode.append(textNode);
+        continue;
+      }
+
+      if (diff.type === "text") {
+        let writableChild = lexicalChild.getWritable();
+
+        if (!isTextNode(writableChild)) {
+          const textNode = $createTextNode(diff.text);
+          for (const format of diff.formats) {
+            textNode.setFormat(format);
+          }
+          writableChild.replace(textNode);
+          continue;
+        }
+
+        if (writableChild.__text !== diff.text) {
+          writableChild.__text = diff.text;
+        }
+
+        for (const format of diff.formats) {
+          writableChild.setFormat(format);
+        }
+
+        continue;
+      } else if (diff.type === "linebreak") {
+        const writableChild = lexicalChild.getWritable();
+
+        if (!isLineBreakNode(writableChild)) {
+          const lineBreak = $createLineBreakNode();
+          writableChild.replace(lineBreak);
+          continue;
+        }
+      }
+    }
+
+    // Remove any extra nodes
+    if (diffText.length < lexicalChildren.length) {
+      for (let i = diffText.length; i < lexicalChildren.length; i++) {
+        const child = lexicalChildren[i];
+        if (isTextNode(child) || isLineBreakNode(child)) {
+          const writableChild = child.getWritable();
+          child.remove();
+        }
+      }
+    }
+  }
+
   getBlockType() {
     return this._properties.get("type");
   }
 }
 
+function isTextNode(node: LexicalNode): node is TextNode {
+  return node instanceof TextNode;
+}
+
+function isLineBreakNode(node: LexicalNode): node is LineBreakNode {
+  return node instanceof LineBreakNode;
+}
+
+function buildTextNodesFromYArray(yarray: YArray<TitleItem>): TitleDiffMatch[] {
+  const diff: TitleDiffMatch[] = [];
+  for (const titleItem of yarray) {
+    const textSplitByNewLine = getTextSplitByNewLine(titleItem.text);
+    let formats: TextFormatType[] = [];
+
+    if (titleItem.marks) {
+      const format = getFormatFromMarks(titleItem.marks);
+      formats.push(...format);
+    }
+
+    for (let i = 0; i < textSplitByNewLine.length; i++) {
+      const text = textSplitByNewLine[i];
+      diff.push({ text, formats: formats, type: "text" });
+
+      if (i < textSplitByNewLine.length - 1) {
+        diff.push({ text: "", formats: [], type: "linebreak" });
+      }
+    }
+  }
+
+  return diff;
+}
+
+type TitleDiffMatch = {
+  text: string;
+  formats: TextFormatType[];
+  type: "text" | "linebreak";
+};
+
 export function $createYjsElementNode(
-  propertiesMap: Map<unknown>,
+  propertiesMap: YMap<unknown>,
   titleMap: YArray<TitleItem>,
   blockId: string,
   type: string

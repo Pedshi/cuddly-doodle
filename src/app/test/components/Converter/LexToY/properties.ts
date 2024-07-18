@@ -6,6 +6,11 @@ import {
   TextNode,
 } from "lexical";
 import { Map as YMap, Array as YArray } from "yjs";
+import {
+  getCommonProperties,
+  getPropertyKeys,
+  lexicalTypeToLuneType,
+} from "../typeConverter";
 
 export function syncPropertiesFromLexical(
   nextNode: ElementNode,
@@ -31,30 +36,4 @@ export function syncPropertiesFromLexical(
       sharedProperties.set(luneKey, nextValue);
     }
   }
-}
-
-function lexicalTypeToLuneType(lexicalType: string) {
-  switch (lexicalType) {
-    case "paragraph":
-      return "text";
-    case "root":
-      return "page";
-    default:
-      return null;
-  }
-}
-
-function getPropertyKeys(blockType: string) {
-  switch (blockType) {
-    case "page":
-      return [];
-    case "text":
-      return [["marks", "format"]];
-    default:
-      return [];
-  }
-}
-
-function getCommonProperties() {
-  return [["type", "__type"]];
 }

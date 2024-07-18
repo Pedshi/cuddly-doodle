@@ -3,13 +3,17 @@ import { Block, MockData } from "../data/mock-data";
 import { YBlock } from "../EditorStore/YBlock";
 import { TitleItem } from "../EditorStore/types";
 
-export function setupYBlocks(data: MockData, blockMap: YMap<unknown>) {
+export function setupYBlocks(
+  data: MockData,
+  blockMap: YMap<unknown>,
+  idToYBlock: Map<string, YBlock>
+) {
   const page = getPageBlock(data);
   if (!page) {
     throw new Error("Page block not found in data");
   }
 
-  const yPage = traverseFromBlock(data, page, blockMap);
+  const yPage = traverseFromBlock(data, page, blockMap, idToYBlock);
 
   return { blockMap, page: yPage };
 }
@@ -17,14 +21,16 @@ export function setupYBlocks(data: MockData, blockMap: YMap<unknown>) {
 function traverseFromBlock(
   data: MockData,
   parent: Block,
-  blockMap: YMap<unknown>
+  blockMap: YMap<unknown>,
+  idToYBlock: Map<string, YBlock>
 ): YBlock {
   const yparent = createYBlockFromBlock(
     parent.id,
     parent.type,
     parent.properties,
     parent.title,
-    blockMap
+    blockMap,
+    idToYBlock
   );
 
   if (!parent.content) {
@@ -36,7 +42,7 @@ function traverseFromBlock(
     if (!childBlock) {
       throw new Error(`Block with id ${childId} not found`);
     }
-    const ychild = traverseFromBlock(data, childBlock, blockMap);
+    const ychild = traverseFromBlock(data, childBlock, blockMap, idToYBlock);
     yparent.addChild(ychild);
   }
 
@@ -48,7 +54,8 @@ function createYBlockFromBlock(
   type: string,
   properties: Record<string, unknown> | undefined,
   title: { content: TitleItem[] } | undefined,
-  blockMap: YMap<unknown>
+  blockMap: YMap<unknown>,
+  idToYBlock: Map<string, YBlock>
 ) {
   const propertiesMap = getYMapFromProperties(properties, type);
   const titleArray = getYArrayFromTitle(title);
@@ -60,6 +67,8 @@ function createYBlockFromBlock(
   elementMap.set("properties", block._properties);
   elementMap.set("title", block._title);
   blockMap.set(block._blockId, elementMap);
+
+  idToYBlock.set(blockId, block);
 
   return block;
 }

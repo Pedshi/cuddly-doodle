@@ -5,8 +5,9 @@ import { Map as YMap, Transaction, YEvent, Doc } from "yjs";
 import { YBlock } from "./YBlock";
 import {
   $createLexicalNodeRecursive,
+  $syncLexicalNodesFromYBlocks,
   findBlockById,
-  $syncLuneNodes,
+  syncLuneNodes,
 } from "./utils";
 import { Bindings } from "./types";
 import { serverProvider } from "../Provider/ServerProvider";
@@ -15,10 +16,12 @@ export const BroadcastPlugin = ({
   blockMap,
   doc,
   page,
+  idToYBlockMap,
 }: {
   blockMap: YMap<unknown>;
   page: YBlock;
   doc: Doc;
+  idToYBlockMap: Map<string, YBlock>;
 }) => {
   const [editor] = useLexicalComposerContext();
   const [binding, setBinding] = useState<Bindings | null>(null);
@@ -32,13 +35,16 @@ export const BroadcastPlugin = ({
 
     editor.update(
       () => {
-        page.$createLexicalNodeWithChildren(luneToLexMap);
+        const blockIdToNodeKeyPair = new Map<string, string>();
+        page.$createLexicalNodeWithChildren(luneToLexMap, blockIdToNodeKeyPair);
 
         setBinding({
           luneToLexMap,
           blockMap,
           page,
           doc,
+          idToYBlockMap,
+          blockIdToNodeKeyPair,
         });
       },
       { tag: "init" }
@@ -62,7 +68,7 @@ export const BroadcastPlugin = ({
         prevEditorState,
         tags,
       }) => {
-        $syncLuneNodes(
+        syncLuneNodes(
           page,
           dirtyElements,
           tags,
@@ -77,10 +83,13 @@ export const BroadcastPlugin = ({
       events: Array<YEvent<any>>,
       transaction: Transaction
     ) => {
-      if (transaction.origin === "editor") {
+      if (transaction.origin === "editor" || transaction.origin === "init") {
         return;
       }
-      console.log("SyncLexicalNodes");
+
+      editor.update(() => {
+        $syncLexicalNodesFromYBlocks(binding, events);
+      });
     };
 
     const syncToLuneServer = (

@@ -87,10 +87,12 @@ export const Editor = ({
   blockMap,
   page,
   doc,
+  idToYBlockMap,
 }: {
   blockMap: YMap<unknown>;
   page: YBlock;
   doc: Doc;
+  idToYBlockMap: Map<string, YBlock>;
 }) => {
   return (
     <LexicalComposer initialConfig={editorConfig}>
@@ -113,7 +115,12 @@ export const Editor = ({
           <AutoFocusPlugin />
           <TreeViewPlugin />
           {/* <DraggableBlockPlugin /> */}
-          <BroadcastPlugin blockMap={blockMap} page={page} doc={doc} />
+          <BroadcastPlugin
+            blockMap={blockMap}
+            page={page}
+            doc={doc}
+            idToYBlockMap={idToYBlockMap}
+          />
           <YTreePlugin doc={doc} />
         </div>
       </div>

@@ -30,6 +30,9 @@ export default function App() {
 
   const [blockMap, setBlockMap] = useState<YMap<unknown> | null>(null);
   const [page, setPage] = useState<YBlock | null>();
+  const [flatIdToBlock, setFlatIdToBlock] = useState<Map<string, YBlock>>(
+    new Map()
+  );
   const hasSetupBlocks = useRef(false);
 
   useEffect(() => {
@@ -39,12 +42,11 @@ export default function App() {
     const setupBlocks = async () => {
       const data = await fetchBlocks();
 
+      const newIdToBlock = new Map<string, YBlock>();
       const blockMap = doc.getMap(MAP_NAME);
-      const { page } = setupYBlocks(data, blockMap);
+      const { page } = setupYBlocks(data, blockMap, newIdToBlock);
 
-      // connect to storequeue
-      // blockMap.observeDeep(storeQueue)
-
+      setFlatIdToBlock(newIdToBlock);
       setBlockMap(blockMap);
       setPage(page);
       setLoading(false);
@@ -58,5 +60,12 @@ export default function App() {
     return <div>Loading...</div>;
   }
 
-  return <Editor blockMap={blockMap} page={page} doc={doc} />;
+  return (
+    <Editor
+      blockMap={blockMap}
+      page={page}
+      doc={doc}
+      idToYBlockMap={flatIdToBlock}
+    />
+  );
 }

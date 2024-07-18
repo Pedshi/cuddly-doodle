@@ -41,11 +41,11 @@ export function $createParagraphFromYBlock(block: YBlock) {
   return paragraph;
 }
 
-function getTextSplitByNewLine(text: string): string[] {
+export function getTextSplitByNewLine(text: string): string[] {
   return text.split("\n");
 }
 
-function getFormatFromMarks(marks: string[]): TextFormatType[] {
+export function getFormatFromMarks(marks: string[]): TextFormatType[] {
   const formats: TextFormatType[] = [];
   for (const mark of marks) {
     switch (mark) {
