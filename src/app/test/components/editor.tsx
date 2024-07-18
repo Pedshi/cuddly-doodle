@@ -26,6 +26,7 @@ import { ChecklistNode } from "./nodes/checklist-node";
 import { YBlock } from "./EditorStore/YBlock";
 import { BroadcastPlugin } from "./EditorStore/BroadcastPlugin";
 import { YTreePlugin } from "./dev-tools/YTreePlugin";
+import { FetchNewDataPlugin } from "./FetchNewDataPlugin";
 
 const placeholder = "Enter some rich text...";
 
@@ -107,6 +108,7 @@ export const Editor = ({
             ErrorBoundary={LexicalErrorBoundary}
             placeholder={null}
           />
+          <FetchNewDataPlugin doc={doc} />
           <HistoryPlugin />
           <AutoFocusPlugin />
           <TreeViewPlugin />

@@ -18,7 +18,10 @@ export function syncTitleFromLexical(
   updateTitles(sharedTitle, newTitles);
 }
 
-function updateTitles(sharedTitle: YArray<TitleItem>, newTitle: TitleItem[]) {
+export function updateTitles(
+  sharedTitle: YArray<TitleItem>,
+  newTitle: TitleItem[]
+) {
   for (let i = 0; i < newTitle.length; i++) {
     const fresh = newTitle[i];
     const old = sharedTitle.get(i);
