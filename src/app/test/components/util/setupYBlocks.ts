@@ -55,7 +55,7 @@ function traverseFromBlock(
   return yparent;
 }
 
-function createYBlockFromBlock(
+export function createYBlockFromBlock(
   blockId: string,
   type: string,
   properties: Record<string, unknown> | undefined,

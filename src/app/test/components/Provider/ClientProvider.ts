@@ -2,11 +2,15 @@ import { Doc, Map as YMap, Array as YArray } from "yjs";
 import { TitleItem } from "../EditorStore/types";
 import { MAP_NAME } from "../../page";
 import { updateTitles } from "../Converter/LexToY/title";
+import { updateChildrenArray } from "../Converter/LexToY/children";
+import { createYBlockFromBlock } from "../util/setupYBlocks";
+import { YBlock } from "../EditorStore/YBlock";
 
 // Updates properties of blocks. Add children must be in order, i.e. first createBlock then addChild command.
 export function clientProvider(
   event: ServerEvent,
-  doc: Doc /* blockIdToBlockY */
+  doc: Doc,
+  idToYBlock: Map<string, YBlock>
 ) {
   if (isUpdateFromMe(event.tag)) {
     return;
@@ -25,11 +29,8 @@ export function clientProvider(
         updateBlock(map, data);
       }
       if (eventType === "create") {
-        // Create YBlock, add to blockIdToBlockY, add to blockMap etc.
-        // Find parent block in IdToBlockY.
-      }
-      if (eventType === "add_child") {
-        // Add to childArray, find child in blockIdToBlockY and add there too.
+        const map = blockMap.get(blockId) as YMap<unknown>;
+        createBlock(data, blockMap, idToYBlock);
       }
     }
   }, "server");
@@ -47,6 +48,42 @@ function updateBlock(map: YMap<unknown>, data: LuneTransactionData) {
   if (data.type) {
     updateType(map, data.type);
   }
+
+  if (data.content) {
+    updateChildren(map, data.content);
+  }
+}
+
+function createBlock(
+  transaction: LuneTransactionData,
+  blockMap: YMap<unknown>,
+  idToYBlock: Map<string, YBlock>
+) {
+  if (!transaction.type) {
+    throw new Error("Type is required to create a block");
+  }
+
+  return createYBlockFromBlock(
+    transaction.id,
+    transaction.type,
+    transaction.properties,
+    transaction.title,
+    transaction.content,
+    blockMap,
+    idToYBlock
+  );
+}
+
+function updateChildren(map: YMap<unknown>, children: string[]) {
+  const ychildren = map.get("children") as YArray<string>;
+  if (children.length === 0) {
+    clearYArray(ychildren);
+    return;
+  }
+
+  // Need to update YBlock and bindings too.
+  // Assuming we use the children array in YBlock then this is enough.
+  updateChildrenArray(ychildren, children);
 }
 
 function updateType(map: YMap<unknown>, type: string) {
@@ -99,4 +136,5 @@ type LuneTransactionData = {
   type?: string;
   title?: { content: Array<TitleItem> };
   properties?: Record<string, any>;
+  content?: string[];
 };

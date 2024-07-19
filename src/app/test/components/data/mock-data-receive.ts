@@ -1,6 +1,6 @@
 import { ServerEvent } from "../Provider/ClientProvider";
 
-export const mockDataReceive: ServerEvent = {
+export const mockDataReceiveOnlyUpdate: ServerEvent = {
   tag: "from_someone_else",
   transactions: [
     {
@@ -15,6 +15,48 @@ export const mockDataReceive: ServerEvent = {
             },
           ],
         },
+      },
+    },
+  ],
+};
+
+export const mockDataReceiveUpdateAndCreate: ServerEvent = {
+  tag: "from_someone_else",
+  transactions: [
+    {
+      eventType: "update",
+      data: {
+        id: "234-text",
+        type: "text",
+        title: {
+          content: [
+            {
+              text: "Fresh text from remote",
+            },
+          ],
+        },
+      },
+    },
+    {
+      eventType: "create",
+      data: {
+        id: "789-text",
+        type: "text",
+        title: {
+          content: [
+            {
+              text: "This block is completely new",
+            },
+          ],
+        },
+      },
+    },
+    {
+      eventType: "update",
+      data: {
+        id: "123-page",
+        type: "page",
+        content: ["234-text", "456-text", "789-text"],
       },
     },
   ],

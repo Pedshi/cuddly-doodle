@@ -110,7 +110,7 @@ export const Editor = ({
             ErrorBoundary={LexicalErrorBoundary}
             placeholder={null}
           />
-          <FetchNewDataPlugin doc={doc} />
+          <FetchNewDataPlugin doc={doc} idToYBlock={idToYBlockMap} />
           <HistoryPlugin />
           <AutoFocusPlugin />
           <TreeViewPlugin />

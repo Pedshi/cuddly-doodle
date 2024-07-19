@@ -1,15 +1,22 @@
 import { Doc } from "yjs";
-import { mockDataReceive } from "./data/mock-data-receive";
+import { mockDataReceiveUpdateAndCreate } from "./data/mock-data-receive";
 import { clientProvider } from "./Provider/ClientProvider";
+import { YBlock } from "./EditorStore/YBlock";
 
 const getData = () => {
-  return mockDataReceive;
+  return mockDataReceiveUpdateAndCreate;
 };
 
-export function FetchNewDataPlugin({ doc }: { doc: Doc }) {
+export function FetchNewDataPlugin({
+  doc,
+  idToYBlock,
+}: {
+  doc: Doc;
+  idToYBlock: Map<string, YBlock>;
+}) {
   const fetchNewData = async () => {
     const newData = getData();
-    clientProvider(newData, doc);
+    clientProvider(newData, doc, idToYBlock);
   };
 
   return (
