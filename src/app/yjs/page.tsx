@@ -60,7 +60,19 @@ export default function TestY() {
       newMap.set("TITLE", titleArray);
       newMap.set("PROPERTIES", props);
 
+      const newMap2 = new Y.Map();
+
+      const titleArray2 = new Y.Array();
+      titleArray.insert(0, ["newTitle2"]);
+
+      const props2 = new Y.Map();
+      props.set("type2", "paragraph2");
+
+      newMap.set("TITLE", titleArray2);
+      newMap.set("PROPERTIES", props2);
+
       pageMap.set("NEW_BLOCK_ID", newMap);
+      pageMap.set("NEW_BLOCK_ID_2", newMap2);
       setElem(newMap);
       setText(titleArray);
     }, "server");

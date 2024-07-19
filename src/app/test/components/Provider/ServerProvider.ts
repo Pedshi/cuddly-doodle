@@ -10,6 +10,12 @@ import { TitleItem } from "../EditorStore/types";
 
 const isTitleKey = (key: string) => key === "title";
 const isPropertiesKey = (key: string) => key === "properties";
+const isChildrenKey = (key: string) => key === "children";
+
+const isCreateNewBlockEvent = (event: YMapEvent<any>) => {
+  const { path } = event;
+  return path.length === 0;
+};
 
 export function serverProvider(
   events: Array<YEvent<any>>,
@@ -45,13 +51,41 @@ function handleYArrayEvent(event: YArrayEvent<any>) {
   const { path } = event;
   const blockId = path[0];
   const updatedKey = path[1];
-
-  // TODO: Handle children array send update to add or remove children
-  if (!(typeof updatedKey === "string") || !isTitleKey(updatedKey)) {
-    console.error("Invalid key type", updatedKey);
-    return;
+  if (
+    !blockId ||
+    typeof blockId !== "string" ||
+    typeof updatedKey !== "string"
+  ) {
+    throw new Error(
+      `Invalid blockId or updatedKey blockId: ${blockId}, updatedKey: ${updatedKey}`
+    );
   }
 
+  if (isChildrenKey(updatedKey)) {
+    return updateChildrenEvent(blockId, event);
+  } else if (isTitleKey(updatedKey)) {
+    return updateTitleEvent(blockId, event);
+  } else {
+    console.error("Invalid key type", updatedKey);
+  }
+}
+
+function updateChildrenEvent(blockId: string, event: YArrayEvent<any>) {
+  const childrenYarray = event.target as YArray<string>;
+  const children = childrenYarray.toJSON();
+
+  const luneEvent = {
+    eventType: "update",
+    data: {
+      id: blockId as string,
+      children,
+    },
+  };
+
+  return luneEvent;
+}
+
+function updateTitleEvent(blockId: string, event: YArrayEvent<any>) {
   const titleYarray = event.target as YArray<TitleItem>;
   const title = titleYarray.toJSON();
 
@@ -67,12 +101,14 @@ function handleYArrayEvent(event: YArrayEvent<any>) {
 }
 
 function handleYMapEvent(event: YMapEvent<any>) {
+  if (isCreateNewBlockEvent(event)) {
+    return createNewBlockEvent(event);
+  }
+
   const { path } = event;
   const blockId = path[0];
   const updatedKey = path[1];
 
-  // TODO: Handle if it's a new block.
-  // If no blockId, it's a new block. Then we try fetch the title, properties and children for that YMAP and send those.
   if (!(typeof updatedKey === "string") || !isPropertiesKey(updatedKey)) {
     console.error("Invalid key type", updatedKey);
     return;
@@ -86,6 +122,45 @@ function handleYMapEvent(event: YMapEvent<any>) {
     data: {
       id: blockId as string,
       properties,
+    },
+  };
+
+  return luneEvent;
+}
+
+function createNewBlockEvent(event: YMapEvent<any>): LuneTransaction[] {
+  const { keysChanged, target } = event;
+  const transactions = [];
+  for (const blockId of keysChanged) {
+    if (typeof blockId !== "string") {
+      throw new Error(`Invalid blockId ${blockId}`);
+    }
+
+    transactions.push(
+      getCreateBlockTransaction(blockId, target as YMap<unknown>)
+    );
+  }
+
+  return transactions;
+}
+
+function getCreateBlockTransaction(blockId: string, blockMap: YMap<unknown>) {
+  const block = blockMap.get(blockId);
+  if (!block || !(block instanceof YMap)) {
+    throw new Error(`Block not a YMap or found, id ${blockId}`);
+  }
+
+  const title = block.get("title");
+  const properties = block.get("properties");
+  const children = block.get("children");
+
+  const luneEvent = {
+    eventType: "create",
+    data: {
+      id: blockId,
+      title: title.toJSON(),
+      properties: properties.toJSON(),
+      children: children.toJSON(),
     },
   };
 
