@@ -56,7 +56,9 @@ function updateTitle(
   sharedTitle.insert(index, [newTitle]);
 }
 
-function lexicalTextToTitleItems(textNodes: (TextNode | LineBreakNode)[]) {
+export function lexicalTextToTitleItems(
+  textNodes: (TextNode | LineBreakNode)[]
+) {
   const newTitle: TitleItem[] = [];
 
   for (let i = 0; i < textNodes.length; i++) {
@@ -136,7 +138,7 @@ function marksEqual(marks1: string[], marks2: string[]) {
   return true;
 }
 
-function getDirectTextAndLineBreakNodes(
+export function getDirectTextAndLineBreakNodes(
   node: ElementNode
 ): (TextNode | LineBreakNode)[] {
   const nodes = node.getChildren();

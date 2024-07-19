@@ -11,22 +11,19 @@ export default function TestY() {
   const [y1, setY1] = useState<Y.Doc | null>(null);
   const [y2, setY2] = useState<Y.Doc | null>(null);
 
-  const [elem, setElem] = useState<Y.XmlElement | null>(null);
-  const [text, setText] = useState<Y.XmlText | null>(null);
+  const [elem, setElem] = useState<Y.Map<unknown> | null>(null);
+  const [text, setText] = useState<Y.Array<unknown> | null>(null);
 
   useEffect(() => {
     const ydoc = new Y.Doc();
-    const yPageArray = ydoc.getArray("root");
+    const ypageMap = ydoc.getMap("page");
 
-    const elem = new Y.XmlElement("node-name");
-    elem.setAttribute("MyKey1", "MyValue1");
+    const yarray = new Y.Array();
+    yarray.push(["itemA", "itemB", "itemC"]);
 
-    const text = new Y.XmlText("Hello World");
-    text.setAttribute("MyTextAttribute1", "MyTextValue");
+    ypageMap.set("FIRST-ARRAY", yarray);
 
-    yPageArray.insert(0, [elem, text]);
-
-    yPageArray.observeDeep((event, transaction) => {
+    ypageMap.observeDeep((event, transaction) => {
       event.forEach((e) => e.delta);
 
       for (const e of event) {
@@ -34,13 +31,10 @@ export default function TestY() {
         console.log("event path", e.path);
         console.log("event delta", e.delta);
         console.log("event changes", e.changes);
-        console.log("event attributesChanged", e?.attributesChanged);
         console.log(".-----");
       }
     });
 
-    setElem(elem);
-    setText(text);
     setY1(ydoc);
   }, []);
   useEffect(() => {
@@ -53,29 +47,44 @@ export default function TestY() {
       return;
     }
     y1.transact(() => {
-      elem?.setAttribute("MyKey1", "MyNewValue1");
-      elem?.setAttribute("MyKey2", "MyValue2");
-      text?.setAttribute("MyTextAttribute1", "MyNewTextValue1");
-      text?.setAttribute("MyTextAttribute2", "MyTextValue2");
+      const newMap = new Y.Map();
+
+      const pageMap = y1.getMap("page");
+
+      const titleArray = new Y.Array();
+      titleArray.insert(0, ["newTitle"]);
+
+      const props = new Y.Map();
+      props.set("type", "paragraph");
+
+      newMap.set("TITLE", titleArray);
+      newMap.set("PROPERTIES", props);
+
+      pageMap.set("NEW_BLOCK_ID", newMap);
+      setElem(newMap);
+      setText(titleArray);
     }, "server");
   };
 
   const addKeyY2 = () => {
-    if (!y2) {
+    if (!y1) {
       return;
     }
-    const ymap = y2.getMap();
-    ymap.set("key Y2", "value Y2");
-    const map = y2.getMap();
-    console.log("map", map?.toJSON());
+    y1.transact(() => {
+      if (!elem) {
+        return;
+      }
+
+      elem.set("NEW_KEY", "NEW_VALUE");
+    });
   };
 
   const print = () => {
     if (!y1) {
       return;
     }
-    const yarray = y1.getArray("root");
-    console.log("yarray", yarray.toJSON());
+    const map = y1.getMap("page");
+    console.log("page", map.toJSON());
   };
 
   return (

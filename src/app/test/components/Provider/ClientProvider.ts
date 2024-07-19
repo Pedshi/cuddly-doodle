@@ -3,8 +3,11 @@ import { TitleItem } from "../EditorStore/types";
 import { MAP_NAME } from "../../page";
 import { updateTitles } from "../Converter/LexToY/title";
 
-// Updates properties of blocks
-export function clientProvider(event: ServerEvent, doc: Doc) {
+// Updates properties of blocks. Add children must be in order, i.e. first createBlock then addChild command.
+export function clientProvider(
+  event: ServerEvent,
+  doc: Doc /* blockIdToBlockY */
+) {
   if (isUpdateFromMe(event.tag)) {
     return;
   }
@@ -20,6 +23,13 @@ export function clientProvider(event: ServerEvent, doc: Doc) {
       if (eventType === "update") {
         const map = blockMap.get(blockId) as YMap<unknown>;
         updateBlock(map, data);
+      }
+      if (eventType === "create") {
+        // Create YBlock, add to blockIdToBlockY, add to blockMap etc.
+        // Find parent block in IdToBlockY.
+      }
+      if (eventType === "add_child") {
+        // Add to childArray, find child in blockIdToBlockY and add there too.
       }
     }
   }, "server");

@@ -13,7 +13,7 @@ import {
   Map as YMap,
   YMapEvent,
 } from "yjs";
-import { $createYjsElementNode, YBlock } from "./YBlock";
+import { YBlock } from "./YBlock";
 import { addElementsToYjsArray, addpropertiesToYjsMap } from "../data/util";
 import { Bindings, LuneToLexMap } from "./types";
 
@@ -48,8 +48,6 @@ export function syncLuneNodes(
   prevState: EditorState,
   bindings: Bindings
 ) {
-  // Should go through Yjs transact
-  console.log("SyncLuneNodes");
   const { doc } = bindings;
 
   doc.transact((transaction) => {
@@ -85,6 +83,8 @@ export function $syncLexicalNodesFromYBlocks(
     }
 
     // TODO: when handling create we must add lexical node here
+    // create lexical node and add to luneToLexMap and blockIdToNodeKeyPair.
+    // Need to add to parent._children too
     const nodeKey = bindings.blockIdToNodeKeyPair.get(blockId);
     if (!nodeKey) {
       console.error(`Could not find nodeKey for blockId ${blockId}`);
@@ -103,6 +103,7 @@ export function $syncLexicalNodesFromYBlocks(
       continue;
     }
     if (event instanceof YArrayEvent) {
+      // TODO: handle if children array is updated
       yblock.$syncLexicalWithYjsTitle(lexicalNode);
     }
   }

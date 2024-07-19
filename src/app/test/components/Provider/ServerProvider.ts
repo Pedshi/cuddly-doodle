@@ -15,6 +15,11 @@ export function serverProvider(
   events: Array<YEvent<any>>,
   transaction: Transaction
 ) {
+  // This line precompute the delta before editor update. The reason is
+  // delta is computed when it is accessed. Note that this can only be
+  // safely computed during the event call. If it is accessed after event
+  // call it might result in unexpected behavior.
+  // https://github.com/yjs/yjs/blob/00ef472d68545cb260abd35c2de4b3b78719c9e4/src/utils/YEvent.js#L132
   events.forEach((event) => event.delta);
 
   const transactions = [];
@@ -41,6 +46,7 @@ function handleYArrayEvent(event: YArrayEvent<any>) {
   const blockId = path[0];
   const updatedKey = path[1];
 
+  // TODO: Handle children array send update to add or remove children
   if (!(typeof updatedKey === "string") || !isTitleKey(updatedKey)) {
     console.error("Invalid key type", updatedKey);
     return;
@@ -65,6 +71,8 @@ function handleYMapEvent(event: YMapEvent<any>) {
   const blockId = path[0];
   const updatedKey = path[1];
 
+  // TODO: Handle if it's a new block.
+  // If no blockId, it's a new block. Then we try fetch the title, properties and children for that YMAP and send those.
   if (!(typeof updatedKey === "string") || !isPropertiesKey(updatedKey)) {
     console.error("Invalid key type", updatedKey);
     return;

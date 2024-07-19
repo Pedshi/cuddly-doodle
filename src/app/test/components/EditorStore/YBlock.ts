@@ -12,7 +12,7 @@ import {
   TextFormatType,
   TextNode,
 } from "lexical";
-import type { Map as YMap, Array as YArray } from "yjs";
+import * as Y from "yjs";
 import { Bindings, LuneToLexMap, TitleItem } from "./types";
 import {
   $createParagraphFromYBlock,
@@ -20,25 +20,35 @@ import {
   getTextSplitByNewLine,
 } from "../Converter/YtoLex";
 import { syncPropertiesFromLexical } from "../Converter/LexToY/properties";
-import { syncTitleFromLexical } from "../Converter/LexToY/title";
+import {
+  getDirectTextAndLineBreakNodes,
+  lexicalTextToTitleItems,
+  syncTitleFromLexical,
+} from "../Converter/LexToY/title";
 
 export class YBlock {
   _blockId: string;
-  _properties: YMap<unknown>;
-  // TODO: Might be better to use XMLElement here
-  _title: YArray<TitleItem>;
+  _properties: Y.Map<unknown>;
+  _title: Y.Array<TitleItem>;
+  _childrenIds: Y.Array<string>;
+  _parentId: string;
+  // Maybe that we remove this and only use childrenIds with a blockId to YBlock map
   _children: YBlock[];
 
   constructor(
     blockId: string,
-    properties: YMap<unknown>,
-    title: YArray<TitleItem>,
+    properties: Y.Map<unknown>,
+    title: Y.Array<TitleItem>,
+    childrenIds: Y.Array<string>,
     children: YBlock[]
   ) {
     this._blockId = blockId;
     this._properties = properties;
     this._title = title;
+    this._childrenIds = childrenIds;
     this._children = children;
+    // For now
+    this._parentId = "";
   }
 
   addChild(child: YBlock) {
@@ -76,7 +86,6 @@ export class YBlock {
       case "page":
         return $getRoot();
       case "text":
-        // TODO: We don't add the text nodes created here to luneToLexMap. Check if we should
         return $createParagraphFromYBlock(this);
       default:
         throw new Error(`Unknown type ${type}`);
@@ -93,6 +102,7 @@ export class YBlock {
     syncTitleFromLexical(lexicalNode, this._title);
   }
 
+  // To know which ones to remove we need to look at previous state
   ysyncChildrenWithLexical(lexicalNode: ElementNode, bindings: Bindings) {
     const luneToLexMap = bindings.luneToLexMap;
     const childrenKeys = lexicalNode.getChildrenKeys();
@@ -108,12 +118,30 @@ export class YBlock {
         continue;
       }
 
+      // What if child node exists but has moved to new parent
       const childYblock = luneToLexMap.get(childKey);
       if (!childYblock) {
-        console.error(
-          `Could not find YBlock child with key ${childKey}, probably need to create it`
+        console.log(
+          `Could not find YBlock for child key ${childKey}, current blockId ${this._blockId}`
         );
+        const childYBlock = $createYBlockFromLexicalNode(
+          childLexicalNode,
+          bindings
+        );
+        console.log("luneToLexMap", luneToLexMap);
+        childYBlock.ysyncChildrenWithLexical(childLexicalNode, bindings);
+        this.addChild(childYBlock);
+        this._childrenIds.push([childYBlock._blockId]);
+
         continue;
+      }
+
+      // Check if exists as child
+      const childId = childYblock._blockId;
+      const childIds = this._childrenIds.toArray();
+      if (!childIds.includes(childId)) {
+        this._childrenIds.push([childId]);
+        this.addChild(childYblock);
       }
 
       childYblock.ysyncBlockWithLexical(childLexicalNode, bindings);
@@ -212,7 +240,9 @@ function isLineBreakNode(node: LexicalNode): node is LineBreakNode {
   return node instanceof LineBreakNode;
 }
 
-function buildTextNodesFromYArray(yarray: YArray<TitleItem>): TitleDiffMatch[] {
+function buildTextNodesFromYArray(
+  yarray: Y.Array<TitleItem>
+): TitleDiffMatch[] {
   const diff: TitleDiffMatch[] = [];
   for (const titleItem of yarray) {
     const textSplitByNewLine = getTextSplitByNewLine(titleItem.text);
@@ -242,11 +272,92 @@ type TitleDiffMatch = {
   type: "text" | "linebreak";
 };
 
-export function $createYjsElementNode(
-  propertiesMap: YMap<unknown>,
-  titleMap: YArray<TitleItem>,
-  blockId: string,
-  type: string
+export function $createYBlockFromLexicalNode(
+  lexicalNode: ElementNode,
+  bindings: Bindings
 ) {
-  return new YBlock(blockId, propertiesMap, titleMap, []);
+  const nodeKey = lexicalNode.getKey();
+
+  const properties = buildPropertiesFromLexical(
+    lexicalNode,
+    lexicalNode.__type
+  );
+
+  const type = lextoLuneType(lexicalNode.__type);
+  properties["type"] = type;
+
+  const titles = buildTitleFromLexical(lexicalNode);
+  const blockId = crypto.randomUUID().toString();
+
+  const yProps = new Y.Map<unknown>();
+  for (const key in properties) {
+    yProps.set(key, properties[key]);
+  }
+
+  const yTitles = new Y.Array<TitleItem>();
+  yTitles.push(titles);
+
+  // Cannot have any children yet, thus init to empty array
+  const yChildren = new Y.Array<string>();
+
+  const yblock = new YBlock(blockId, yProps, yTitles, yChildren, []);
+  const elementMap = new Y.Map();
+  elementMap.set("properties", yblock._properties);
+  elementMap.set("title", yblock._title);
+  elementMap.set("children", yblock._childrenIds);
+
+  bindings.blockMap.set(blockId, elementMap);
+
+  bindings.idToYBlockMap.set(blockId, yblock);
+  bindings.blockIdToNodeKeyPair.set(blockId, nodeKey);
+  bindings.luneToLexMap.set(nodeKey, yblock);
+
+  return yblock;
 }
+
+function buildTitleFromLexical(lexicalNode: ElementNode) {
+  const textOrLineBreakNodes = getDirectTextAndLineBreakNodes(lexicalNode);
+  const newTitles = lexicalTextToTitleItems(textOrLineBreakNodes);
+  return newTitles;
+}
+
+function buildPropertiesFromLexical(
+  lexicalNode: ElementNode,
+  lexicalType: string
+) {
+  const incProps = getIncludedProperties(lexicalType);
+  if (!incProps) {
+    console.error(
+      `Include properties not defined for lexical type ${lexicalType}`
+    );
+    return {};
+  }
+
+  const props: Record<string, unknown> = {};
+  for (const prop of incProps) {
+    props[prop] = lexicalNode[prop as keyof typeof lexicalNode];
+  }
+
+  return props;
+}
+
+function lextoLuneType(lexicalType: string) {
+  switch (lexicalType) {
+    case "paragraph":
+      return "text";
+    case "root":
+      return "page";
+    default:
+      return lexicalType;
+  }
+}
+
+function getIncludedProperties(lexicalType: string): string[] | undefined {
+  return includeProperties[lexicalType as keyof typeof includeProperties];
+}
+
+const includeProperties = {
+  // TODO: maybe keep format
+  paragraph: [],
+  root: [],
+};
