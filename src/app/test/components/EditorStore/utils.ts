@@ -17,6 +17,13 @@ import { YBlock } from "./YBlock";
 import { addElementsToYjsArray, addpropertiesToYjsMap } from "../data/util";
 import { Bindings, LuneToLexMap } from "./types";
 
+const isChildrenKey = (key: string) => key === "children";
+const isTitleKey = (key: string) => key === "title";
+
+const isNewBlockCreatedEvent = (event: YEvent<any>) => {
+  return event instanceof YMapEvent && event.path.length === 0;
+};
+
 export function findBlockById(id: string, blocks: YBlock[]) {
   for (const block of blocks) {
     if (block._blockId === id) {
@@ -69,6 +76,11 @@ export function $syncLexicalNodesFromYBlocks(
   events: Array<YEvent<any>>
 ) {
   for (const event of events) {
+    if (isNewBlockCreatedEvent(event)) {
+      createBlocksEvent(event as YMapEvent<any>, bindings);
+      continue;
+    }
+
     const { path } = event;
     const blockId = path[0];
     if (!(typeof blockId === "string")) {
@@ -82,9 +94,6 @@ export function $syncLexicalNodesFromYBlocks(
       continue;
     }
 
-    // TODO: when handling create we must add lexical node here
-    // create lexical node and add to luneToLexMap and blockIdToNodeKeyPair.
-    // Need to add to parent._children too
     const nodeKey = bindings.blockIdToNodeKeyPair.get(blockId);
     if (!nodeKey) {
       console.error(`Could not find nodeKey for blockId ${blockId}`);
@@ -103,8 +112,46 @@ export function $syncLexicalNodesFromYBlocks(
       continue;
     }
     if (event instanceof YArrayEvent) {
-      // TODO: handle if children array is updated
-      yblock.$syncLexicalWithYjsTitle(lexicalNode);
+      const updatedKey = path[1];
+      if (typeof updatedKey !== "string") {
+        throw new Error(`Invalid key type ${updatedKey}, expected string`);
+      }
+
+      if (isTitleKey(updatedKey)) {
+        yblock.$syncLexicalWithYjsTitle(lexicalNode);
+      } else if (isChildrenKey(updatedKey)) {
+        yblock.$syncLexicalWithYjsChildren(lexicalNode, bindings);
+      } else {
+        throw new Error(`Invalid key ${updatedKey}`);
+      }
     }
   }
+}
+
+function createBlocksEvent(event: YMapEvent<any>, bindings: Bindings) {
+  const { idToYBlockMap, luneToLexMap, blockIdToNodeKeyPair } = bindings;
+  const { keysChanged, target } = event;
+  for (const blockId of keysChanged) {
+    if (typeof blockId !== "string") {
+      throw new Error(`Invalid blockId ${blockId}`);
+    }
+
+    const yblock = idToYBlockMap.get(blockId);
+    if (!yblock) {
+      throw new Error(`Could not find YBlock with id ${blockId}`);
+    }
+
+    createLexicalFromYBlock(yblock, luneToLexMap, blockIdToNodeKeyPair);
+  }
+}
+
+function createLexicalFromYBlock(
+  yblock: YBlock,
+  luneToLexMap: LuneToLexMap,
+  blockIdNodeKeyPair: Map<string, string>
+) {
+  const lexicalNode = yblock.$createCurrentNodeInLexical();
+  const nodeKey = lexicalNode.getKey();
+  luneToLexMap.set(nodeKey, yblock);
+  blockIdNodeKeyPair.set(yblock._blockId, nodeKey);
 }

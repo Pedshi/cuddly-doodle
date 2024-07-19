@@ -2,15 +2,8 @@ import {
   $createLineBreakNode,
   $createParagraphNode,
   $createTextNode,
-  $getNodeByKey,
-  $getRoot,
-  ElementNode,
-  NodeMap,
-  RootNode,
   TextFormatType,
 } from "lexical";
-import { Map } from "yjs";
-import type { Map as YMap, Array as YArray } from "yjs";
 import { YBlock } from "../EditorStore/YBlock";
 
 export function $createParagraphFromYBlock(block: YBlock) {

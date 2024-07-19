@@ -59,7 +59,7 @@ export class YBlock {
     luneToLexMap: LuneToLexMap,
     blockIdNodeKeyPair: Map<string, string>
   ) {
-    let currentNode = this._$createCurrentNodeInLexical();
+    let currentNode = this.$createCurrentNodeInLexical();
     const nodeKey = currentNode.getKey();
     luneToLexMap.set(nodeKey, this);
     blockIdNodeKeyPair.set(this._blockId, nodeKey);
@@ -80,7 +80,7 @@ export class YBlock {
     return currentNode;
   }
 
-  _$createCurrentNodeInLexical() {
+  $createCurrentNodeInLexical() {
     const type = this._properties.get("type");
     switch (type) {
       case "page":
@@ -230,6 +230,91 @@ export class YBlock {
   getBlockType() {
     return this._properties.get("type");
   }
+
+  $syncLexicalWithYjsChildren(lexicalNode: ElementNode, bindings: Bindings) {
+    const writable = lexicalNode.getWritable();
+    const nextChildNodeKeys = this._getChildrenNodeKeys(
+      bindings.blockIdToNodeKeyPair
+    );
+    const currentChildNodes = getNonTextChildren(writable);
+    const currentChildNodeKeys = currentChildNodes.map((node) => node.getKey());
+    let offsetIdx = 0;
+
+    // 1. Reorder child nodes according to the new order
+    for (let i = 0; i < nextChildNodeKeys.length; i++) {
+      const nextNodeKey = nextChildNodeKeys[i];
+      // We are adding nodes but this isn't reflected in the currentChildNodeKeys.
+      // So we offset the index to match the actual child array after modifications.
+      const calculatedIdx = i - offsetIdx;
+      const currentNodeKey =
+        calculatedIdx > currentChildNodeKeys.length - 1
+          ? undefined
+          : currentChildNodeKeys[calculatedIdx];
+
+      if (currentNodeKey === nextNodeKey) {
+        continue;
+      }
+
+      const nextNode = $getNodeByKey(nextNodeKey);
+      if (!nextNode) {
+        console.error(
+          `Could not find node with key ${nextNodeKey}, node should exist at this point`
+        );
+        continue;
+      }
+
+      // If node doesn't exist add it
+      if (!currentNodeKey) {
+        writable.append(nextNode);
+        continue;
+      }
+
+      // At this point we know that the current child at this position and
+      // the new child differs and should note that it's to be replaced.
+      const currentNode = $getNodeByKey(currentNodeKey);
+      if (!currentNode) {
+        throw new Error(`Node with Id ${currentNodeKey} does not exist`);
+      }
+
+      currentNode.insertBefore(nextNode);
+      offsetIdx++;
+    }
+
+    // 2. Remove any extra nodes
+    const childrenAfterAdditions = getNonTextChildren(writable);
+    if (nextChildNodeKeys.length < childrenAfterAdditions.length) {
+      for (
+        let i = nextChildNodeKeys.length;
+        i < childrenAfterAdditions.length;
+        i++
+      ) {
+        const node = childrenAfterAdditions[i];
+        if (!node) {
+          console.error(
+            `Could not find node with key ${currentChildNodeKeys[i]}`
+          );
+          continue;
+        }
+
+        node.remove();
+      }
+    }
+  }
+
+  _getChildrenNodeKeys(blockIdToNodeKeyPair: Map<string, string>) {
+    const childrenIds = this._childrenIds.toArray();
+    const nodeKeys = [];
+    for (const childId of childrenIds) {
+      const nodeKey = blockIdToNodeKeyPair.get(childId);
+      if (!nodeKey) {
+        console.error(`Could not find nodeKey for childId ${childId}`);
+        continue;
+      }
+      nodeKeys.push(nodeKey);
+    }
+
+    return nodeKeys;
+  }
 }
 
 function isTextNode(node: LexicalNode): node is TextNode {
@@ -238,6 +323,18 @@ function isTextNode(node: LexicalNode): node is TextNode {
 
 function isLineBreakNode(node: LexicalNode): node is LineBreakNode {
   return node instanceof LineBreakNode;
+}
+
+function getNonTextChildren(lexicalNode: ElementNode) {
+  const children = lexicalNode.getChildren();
+  const nonTextChildren = [];
+  for (const child of children) {
+    if (!isTextNode(child)) {
+      nonTextChildren.push(child);
+    }
+  }
+
+  return nonTextChildren;
 }
 
 function buildTextNodesFromYArray(
