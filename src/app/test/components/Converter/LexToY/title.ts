@@ -18,13 +18,24 @@ export function syncTitleFromLexical(
   updateTitles(sharedTitle, newTitles);
 }
 
+/**
+ * Updates the shared title array with the new titles.
+ * If the new title is different from the old title, the old title is replaced.
+ * If the new title is shorter than the old title, the remaining old titles are removed.
+ * If the new title is longer than the old title, the new titles are inserted.
+ */
 export function updateTitles(
   sharedTitle: YArray<TitleItem>,
   newTitle: TitleItem[]
 ) {
   for (let i = 0; i < newTitle.length; i++) {
     const fresh = newTitle[i];
-    const old = sharedTitle.get(i);
+    const old = i > sharedTitle.length - 1 ? undefined : sharedTitle.get(i);
+
+    if (!old) {
+      sharedTitle.insert(i, [fresh]);
+      continue;
+    }
 
     if (fresh.text !== old.text || fresh.marks !== old.marks) {
       updateTitle(sharedTitle, fresh, i);
