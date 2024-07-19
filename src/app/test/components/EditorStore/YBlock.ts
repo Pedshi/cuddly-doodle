@@ -25,6 +25,7 @@ import {
   lexicalTextToTitleItems,
   syncTitleFromLexical,
 } from "../Converter/LexToY/title";
+import { MAP_NAME } from "../../page";
 
 export class YBlock {
   _blockId: string;
@@ -102,10 +103,12 @@ export class YBlock {
     syncTitleFromLexical(lexicalNode, this._title);
   }
 
-  // To know which ones to remove we need to look at previous state
-  ysyncChildrenWithLexical(lexicalNode: ElementNode, bindings: Bindings) {
+  /**
+   * Sync children with corresponding Lexical nodes children.
+   */
+  ysyncChildrenWithLexical(nextLexicalNode: ElementNode, bindings: Bindings) {
     const luneToLexMap = bindings.luneToLexMap;
-    const childrenKeys = lexicalNode.getChildrenKeys();
+    const childrenKeys = nextLexicalNode.getChildrenKeys();
 
     for (const childKey of childrenKeys) {
       const childLexicalNode = $getNodeByKey(childKey);
@@ -121,14 +124,10 @@ export class YBlock {
       // What if child node exists but has moved to new parent
       const childYblock = luneToLexMap.get(childKey);
       if (!childYblock) {
-        console.log(
-          `Could not find YBlock for child key ${childKey}, current blockId ${this._blockId}`
-        );
         const childYBlock = $createYBlockFromLexicalNode(
           childLexicalNode,
           bindings
         );
-        console.log("luneToLexMap", luneToLexMap);
         childYBlock.ysyncChildrenWithLexical(childLexicalNode, bindings);
         this.addChild(childYBlock);
         this._childrenIds.push([childYBlock._blockId]);
@@ -147,6 +146,43 @@ export class YBlock {
       childYblock.ysyncBlockWithLexical(childLexicalNode, bindings);
       childYblock.ysyncChildrenWithLexical(childLexicalNode, bindings);
     }
+
+    // Remove any children that are not in the new children list
+    const ychildIds = this._childrenIds.toArray();
+    for (const ychildId of ychildIds) {
+      const nodeKey = bindings.blockIdToNodeKeyPair.get(ychildId);
+      if (!nodeKey) {
+        this.yremoveChild(ychildId);
+        continue;
+      }
+
+      if (!childrenKeys.includes(nodeKey)) {
+        this.yremoveChild(ychildId);
+      }
+    }
+  }
+
+  ydestroy(bindings: Bindings, nodeKey: string) {
+    const docMap = bindings.doc.getMap(MAP_NAME);
+    docMap.delete(this._blockId);
+
+    // TODO: check if needed to unobserve YElements here
+    // this._childrenIds.unobserve();
+
+    bindings.idToYBlockMap.delete(this._blockId);
+    bindings.blockIdToNodeKeyPair.delete(this._blockId);
+    bindings.luneToLexMap.delete(nodeKey);
+  }
+
+  yremoveChild(childId: string) {
+    const idx = this._childrenIds.toArray().indexOf(childId);
+    if (idx === -1) {
+      console.error(`Could not find child with id ${childId}`);
+      return;
+    }
+
+    this._childrenIds.delete(idx);
+    this._children.splice(idx, 1);
   }
 
   $syncLexicalWithYjsProperties(

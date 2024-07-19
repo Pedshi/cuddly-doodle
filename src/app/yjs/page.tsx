@@ -87,7 +87,8 @@ export default function TestY() {
         return;
       }
 
-      elem.set("NEW_KEY", "NEW_VALUE");
+      const pageMap = y1.getMap("page");
+      pageMap.delete("NEW_BLOCK_ID");
     });
   };
 

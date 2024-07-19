@@ -67,6 +67,22 @@ export function syncLuneNodes(
       const page = bindings.page;
       page.ysyncBlockWithLexical(nextLexicalRoot, bindings);
       page.ysyncChildrenWithLexical(nextLexicalRoot, bindings);
+      const nextNodeKeys = Array.from(state._nodeMap.keys());
+      const prevNodeKeys = Array.from(prevState._nodeMap.keys());
+
+      // TODO: This might not work when a block changes type. In lexical a change of block type is a new block.
+      // In our instance we would like to keep the block. We might be able to solve this by checking if a block is an orphan.
+      const removedKeys = prevNodeKeys.filter(
+        (key) => !nextNodeKeys.includes(key)
+      );
+      for (const key of removedKeys) {
+        const yblock = bindings.luneToLexMap.get(key);
+        if (!yblock) {
+          continue;
+        }
+
+        yblock.ydestroy(bindings, key);
+      }
     });
   }, "editor");
 }

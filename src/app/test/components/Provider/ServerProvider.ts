@@ -12,7 +12,7 @@ const isTitleKey = (key: string) => key === "title";
 const isPropertiesKey = (key: string) => key === "properties";
 const isChildrenKey = (key: string) => key === "children";
 
-const isCreateNewBlockEvent = (event: YMapEvent<any>) => {
+const isCreateOrDeleteEvent = (event: YMapEvent<any>) => {
   const { path } = event;
   return path.length === 0;
 };
@@ -101,8 +101,20 @@ function updateTitleEvent(blockId: string, event: YArrayEvent<any>) {
 }
 
 function handleYMapEvent(event: YMapEvent<any>) {
-  if (isCreateNewBlockEvent(event)) {
-    return createNewBlockEvent(event);
+  if (isCreateOrDeleteEvent(event)) {
+    const { changes, target } = event;
+    const transactions = [];
+    for (const [blockId, change] of changes.keys) {
+      if (change.action === "add") {
+        transactions.push(
+          getCreateBlockTransaction(blockId, target as YMap<unknown>)
+        );
+      } else if (change.action === "delete") {
+        transactions.push(getDeleteBlockTransaction(blockId));
+      }
+    }
+
+    return transactions;
   }
 
   const { path } = event;
@@ -142,6 +154,17 @@ function createNewBlockEvent(event: YMapEvent<any>): LuneTransaction[] {
   }
 
   return transactions;
+}
+
+function getDeleteBlockTransaction(blockId: string) {
+  const luneEvent = {
+    eventType: "delete",
+    data: {
+      id: blockId,
+    },
+  };
+
+  return luneEvent;
 }
 
 function getCreateBlockTransaction(blockId: string, blockMap: YMap<unknown>) {
