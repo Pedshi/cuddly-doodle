@@ -27,10 +27,10 @@ export function clientProvider(
       if (eventType === "update") {
         const map = blockMap.get(blockId) as YMap<unknown>;
         updateBlock(map, data);
-      }
-      if (eventType === "create") {
-        const map = blockMap.get(blockId) as YMap<unknown>;
+      } else if (eventType === "create") {
         createBlock(data, blockMap, idToYBlock);
+      } else if (eventType === "delete") {
+        deleteBlock(blockId, idToYBlock, blockMap);
       }
     }
   }, "server");
@@ -72,6 +72,21 @@ function createBlock(
     blockMap,
     idToYBlock
   );
+}
+
+function deleteBlock(
+  blockId: string,
+  idToYBlock: Map<string, YBlock>,
+  blockMap: YMap<unknown>
+) {
+  const yblock = idToYBlock.get(blockId);
+  if (!yblock) {
+    return;
+  }
+
+  // Delete YBlock
+  yblock.ydestroy(blockMap);
+  idToYBlock.delete(blockId);
 }
 
 function updateChildren(map: YMap<unknown>, children: string[]) {

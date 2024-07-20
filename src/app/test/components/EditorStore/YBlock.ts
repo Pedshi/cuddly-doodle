@@ -162,7 +162,14 @@ export class YBlock {
     }
   }
 
-  ydestroy(bindings: Bindings, nodeKey: string) {
+  ydestroy(blockMap: Y.Map<unknown>) {
+    blockMap.delete(this._blockId);
+
+    // TODO: check if needed to unobserve YElements here
+    // this._childrenIds.unobserve();
+  }
+
+  $ydestroy(bindings: Bindings, nodeKey: string) {
     const docMap = bindings.doc.getMap(MAP_NAME);
     docMap.delete(this._blockId);
 

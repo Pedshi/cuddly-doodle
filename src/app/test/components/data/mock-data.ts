@@ -12,6 +12,18 @@ export const mockDataOnlyPage: MockData = {
 export const mockDataOnlyParagraphAndPage: MockData = {
   data: [
     {
+      id: "d123-text",
+      type: "text",
+      title: {
+        content: [
+          {
+            text: "To be deleted",
+          },
+        ],
+      },
+      properties: {},
+    },
+    {
       id: "456-text",
       type: "text",
       title: {
@@ -38,7 +50,7 @@ export const mockDataOnlyParagraphAndPage: MockData = {
     },
     {
       id: "123-page",
-      content: ["234-text", "456-text"],
+      content: ["234-text", "456-text", "d123-text"],
       type: "page",
     },
   ],

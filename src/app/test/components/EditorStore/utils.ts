@@ -20,7 +20,7 @@ import { Bindings, LuneToLexMap } from "./types";
 const isChildrenKey = (key: string) => key === "children";
 const isTitleKey = (key: string) => key === "title";
 
-const isNewBlockCreatedEvent = (event: YEvent<any>) => {
+const isCreateOrDeleteEvent = (event: YEvent<any>) => {
   return event instanceof YMapEvent && event.path.length === 0;
 };
 
@@ -81,7 +81,7 @@ export function syncLuneNodes(
           continue;
         }
 
-        yblock.ydestroy(bindings, key);
+        yblock.$ydestroy(bindings, key);
       }
     });
   }, "editor");
@@ -92,8 +92,31 @@ export function $syncLexicalNodesFromYBlocks(
   events: Array<YEvent<any>>
 ) {
   for (const event of events) {
-    if (isNewBlockCreatedEvent(event)) {
-      createBlocksEvent(event as YMapEvent<any>, bindings);
+    if (isCreateOrDeleteEvent(event)) {
+      const { changes, target } = event;
+      for (const [blockId, change] of changes.keys) {
+        if (change.action === "add") {
+          const yblock = bindings.idToYBlockMap.get(blockId);
+          if (!yblock) {
+            throw new Error(`Could not find YBlock with id ${blockId}`);
+          }
+          createLexicalFromYBlock(
+            yblock,
+            bindings.luneToLexMap,
+            bindings.blockIdToNodeKeyPair
+          );
+        } else if (change.action === "delete") {
+          const yblock = bindings.idToYBlockMap.get(blockId);
+          if (!yblock) {
+            throw new Error(`Could not find YBlock with id ${blockId}`);
+          }
+          $deleteLexicalFromYBlock(
+            yblock,
+            bindings.luneToLexMap,
+            bindings.blockIdToNodeKeyPair
+          );
+        }
+      }
       continue;
     }
 
@@ -144,23 +167,6 @@ export function $syncLexicalNodesFromYBlocks(
   }
 }
 
-function createBlocksEvent(event: YMapEvent<any>, bindings: Bindings) {
-  const { idToYBlockMap, luneToLexMap, blockIdToNodeKeyPair } = bindings;
-  const { keysChanged, target } = event;
-  for (const blockId of keysChanged) {
-    if (typeof blockId !== "string") {
-      throw new Error(`Invalid blockId ${blockId}`);
-    }
-
-    const yblock = idToYBlockMap.get(blockId);
-    if (!yblock) {
-      throw new Error(`Could not find YBlock with id ${blockId}`);
-    }
-
-    createLexicalFromYBlock(yblock, luneToLexMap, blockIdToNodeKeyPair);
-  }
-}
-
 function createLexicalFromYBlock(
   yblock: YBlock,
   luneToLexMap: LuneToLexMap,
@@ -170,4 +176,24 @@ function createLexicalFromYBlock(
   const nodeKey = lexicalNode.getKey();
   luneToLexMap.set(nodeKey, yblock);
   blockIdNodeKeyPair.set(yblock._blockId, nodeKey);
+}
+
+function $deleteLexicalFromYBlock(
+  yblock: YBlock,
+  luneToLexMap: LuneToLexMap,
+  blockIdNodeKeyPair: Map<string, string>
+) {
+  const nodeKey = blockIdNodeKeyPair.get(yblock._blockId);
+  if (!nodeKey) {
+    return;
+  }
+  const lexicalNode = $getNodeByKey(nodeKey);
+  const writable = lexicalNode?.getWritable();
+  if (!writable) {
+    return;
+  }
+
+  writable.remove();
+  luneToLexMap.delete(nodeKey);
+  blockIdNodeKeyPair.delete(yblock._blockId);
 }
